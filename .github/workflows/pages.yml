@@ -40,6 +40,11 @@ jobs:
           fi
 
       - uses: actions/configure-pages@v5
+        with:
+          # Active Pages avec la source « GitHub Actions » s'il ne l'est pas
+          # encore : sans ce réglage, le premier déploiement échoue sur une
+          # case absente, ce qui se lit à tort comme une faute de code.
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
