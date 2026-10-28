@@ -1,0 +1,576 @@
+/* FlowTrax — identité visuelle reprise de l'application d'origine. */
+
+:root{
+  --bg:#F8F4F0;--surface:#FFFFFF;--ink:#241A13;--muted:#6E5F53;--line:#E8DDD3;
+  --accent:#C4560B;--accent-ink:#FFFFFF;--signal:#F2B705;--plate-ink:#14232E;
+  --ok:#1E7a4c;--ok-bg:#E3F3EA;--warn:#9A5A08;--warn-bg:#FBEFD9;--bad:#A8261E;--bad-bg:#FBE4E2;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#16110D;--surface:#211A14;--ink:#F2EAE3;--muted:#AC9B8D;--line:#3B2F26;
+  --accent:#F28C38;--accent-ink:#1A120C;--signal:#F2B705;--plate-ink:#14232E;
+  --ok:#62C48F;--ok-bg:#163327;--warn:#EBA650;--warn-bg:#3A2A12;--bad:#F07C73;--bad-bg:#3D1C1A;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#16110D;--surface:#211A14;--ink:#F2EAE3;--muted:#AC9B8D;--line:#3B2F26;
+  --accent:#F28C38;--accent-ink:#1A120C;--signal:#F2B705;--plate-ink:#14232E;
+  --ok:#62C48F;--ok-bg:#163327;--warn:#EBA650;--warn-bg:#3A2A12;--bad:#F07C73;--bad-bg:#3D1C1A;color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+.wrap.wide{max-width:1080px}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:3px solid var(--accent)}
+header.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-block:10px}
+.brand{display:flex;align-items:center;gap:8px;margin-right:auto}
+.brand b{font-family:var(--f-display);font-size:22px;letter-spacing:.02em;text-transform:uppercase}
+.brand span{color:var(--muted);font-size:14px}
+.logo{height:62px;width:auto;display:block;background:#FFFFFF;border-radius:6px;padding:2px 4px}
+
+h1,h2,h3{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.02em;text-wrap:balance;margin:0}
+h1{font-size:28px}h2{font-size:19px}
+.lead{color:var(--muted);margin:4px 0 0}
+
+.banner{border:1px solid var(--warn);background:var(--warn-bg);color:var(--ink);border-radius:10px;padding:10px 14px;margin-top:16px;font-size:15px}
+.banner.bad{border-color:var(--bad);background:var(--bad-bg)}
+.banner b{font-weight:700}
+
+form{display:grid;gap:18px;margin-top:18px}
+fieldset{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:14px 16px 16px;margin:0;display:grid;gap:12px;min-width:0}
+legend{font-family:var(--f-display);font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);padding:0 6px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:520px){.grid2,.grid3{grid-template-columns:1fr}.grid3.keep{grid-template-columns:repeat(3,1fr)}.grid4{grid-template-columns:1fr 1fr}}
+
+label{display:grid;gap:4px;font-size:14px;font-weight:600;min-width:0}
+label small{font-weight:400;color:var(--muted)}
+input,select{font:500 16px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 11px;width:100%;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--signal);outline-offset:1px}
+input[readonly]{background:transparent}
+input.mono{font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.04em}
+
+.hint{font-size:13px;color:var(--muted);margin:0}
+.sub{color:var(--muted);font-size:13px}
+
+.route{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:14px}
+.route .stop{padding:4px 9px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.route .stop.here{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.route .stop.end{border-color:var(--ink);font-weight:600}
+.route .stop.mid{border-style:dashed}
+.route .arrow{color:var(--muted)}
+
+.plate{display:inline-block;font-family:var(--f-mono);font-weight:600;background:var(--signal);color:var(--plate-ink);border-radius:4px;padding:1px 6px;letter-spacing:.04em;font-size:14px;white-space:nowrap}
+
+.passants{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+
+.meter{display:grid;gap:6px}
+.meter-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.big{font-family:var(--f-display);font-size:34px;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .25s}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+
+.pill{display:inline-block;font:600 13px var(--f-body);padding:2px 8px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+
+.msgs{display:grid;gap:6px}
+.msgs p{margin:0;font-size:14px;padding:6px 10px;border-radius:8px}
+.msgs .w{background:var(--warn-bg);color:var(--warn)}
+.msgs .e{background:var(--bad-bg);color:var(--bad)}
+
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.btn{font:600 16px var(--f-body);border-radius:10px;padding:12px 18px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.small{font-size:14px;padding:7px 12px;border-radius:8px}
+.btn.danger{border-color:var(--bad);color:var(--bad);background:transparent}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+.card{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:16px;display:grid;gap:12px;min-width:0}
+pre.wa{margin:0;white-space:pre-wrap;word-break:break-word;font:14px/1.5 var(--f-mono);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px}
+.ok-title{color:var(--ok)}
+
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.n,th.n{text-align:right}
+tr:last-child td{border-bottom:0}
+
+.empty{color:var(--muted);text-align:center;padding:28px 12px;border:1px dashed var(--line);border-radius:12px;margin-top:16px}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:20;max-width:calc(100% - 32px)}
+
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+@media (max-width:520px){.seg{grid-template-columns:1fr 1fr}}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label{display:block;text-align:center;font:600 14px var(--f-body);border:1px solid var(--line);border-radius:8px;padding:10px 6px;cursor:pointer;background:var(--bg)}
+.seg input:checked+label{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.seg input:focus-visible+label{outline:3px solid var(--signal);outline-offset:1px}
+
+.editbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:16px;padding:12px 14px;border:1px solid var(--warn);background:var(--warn-bg);border-radius:12px}
+.axepub{margin:0;font-size:15px;padding:8px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+.axepub b{color:var(--accent);letter-spacing:.02em}
+.rowact{display:flex;flex-wrap:wrap;gap:6px}
+tr.annule td{color:var(--muted);text-decoration:line-through}
+tr.annule td:nth-child(2){text-decoration:none}
+
+/* connexion */
+.login-wrap{max-width:460px;margin:0 auto;padding:24px 16px 48px}
+.login-card{margin-top:18px}
+
+/* administration */
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-top:16px;padding-bottom:4px;scrollbar-width:thin}
+.tabs button{font:600 15px var(--f-body);white-space:nowrap;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:8px 14px;cursor:pointer}
+.tabs button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.formedit{margin-top:18px}
+label.chk{display:flex;align-items:center;gap:8px;font-weight:600;align-self:end;padding-bottom:10px}
+label.chk input{width:auto;min-width:0}
+.itin{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.itin li{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--bg)}
+.itin .rowact{flex-wrap:nowrap}
+.mono{font-family:var(--f-mono);letter-spacing:.03em}
+
+/* tableau de bord : cartes d'indicateurs (le balisage existait, pas le style) */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px}
+.kpi{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;display:grid;gap:2px;min-width:0}
+.kpi span{font-family:var(--f-display);font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.kpi b{font-family:var(--f-display);font-size:29px;line-height:1.1;font-variant-numeric:tabular-nums}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;margin-top:8px}
+@media (max-width:820px){.cols{grid-template-columns:1fr}}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-top:18px}
+.toolbar label{min-width:150px}
+
+/* rapports : historique */
+.entry{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;margin-top:10px}
+.entry-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.entry-h b{font-family:var(--f-display);text-transform:uppercase;letter-spacing:.02em;font-size:16px}
+.diff{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px;font-size:14px}
+.diff li{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+
+/* bordereau imprimable */
+.sheet{background:#FFFFFF;color:#14232E;border:1px solid var(--line);border-radius:12px;padding:22px;margin:18px 0 40px}
+.sheet-h{display:flex;align-items:center;gap:12px;border-bottom:3px solid #C4560B;padding-bottom:10px}
+.sheet-h .logo{height:48px;background:transparent;padding:0}
+.sheet-h h1{font-size:24px;color:#14232E}
+.sheet-h .sub{color:#5A6570}
+.sheet-no{margin-left:auto;text-align:right;display:grid}
+.sheet-no b{font-family:var(--f-mono);font-size:20px}
+.sheet-kv{width:100%;margin-top:12px;border-collapse:collapse}
+.sheet-kv th{width:38%;font-size:12px;color:#5A6570;padding:5px 12px 5px 0;vertical-align:top;border-bottom:1px solid #E3E7EA}
+.sheet-kv td{padding:5px 0;border-bottom:1px solid #E3E7EA;font-size:14px}
+.sheet h2{font-size:15px;margin-top:16px}
+.sheet table{font-size:13px}
+
+@media print{
+  :root{--bg:#fff;--surface:#fff;--ink:#111;--muted:#555;--line:#bbb;--accent:#111;--accent-ink:#fff}
+  body{background:#fff}
+  header.top,.noprint,.toast,#boot{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .sheet{border:0;border-radius:0;margin:0;padding:0}
+  .sheet-h{border-bottom-color:#111}
+  @page{size:A4;margin:14mm}
+}
+
+.loading{color:var(--muted);text-align:center;padding:28px 12px}
+
+/* ===========================================================================
+   Registre transport — couche commune aux six pages.
+   Vocabulaire : bandeau de quai sombre, marquage au sol, réglette
+   d'indicateurs, étiquette d'heure de départ, plaque d'immatriculation.
+   Les libellés de l'application ne changent pas ; seule la mise en forme.
+   =========================================================================== */
+
+:root{
+  --rail:rgba(196,86,11,.09);
+  --shadow:0 16px 34px -26px rgba(24,16,10,.55);
+  --board-ink:#F6EFE8;
+  --board-muted:rgba(246,239,232,.62);
+  --board-line:rgba(255,255,255,.10);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --rail:rgba(242,140,56,.09);
+  --shadow:0 16px 34px -26px #000;
+}}
+:root[data-theme="dark"]{
+  --rail:rgba(242,140,56,.09);
+  --shadow:0 16px 34px -26px #000;
+}
+
+/* fond : trame de voirie, très discrète, commune à toutes les pages */
+body{
+  background:
+    radial-gradient(120% 55% at 50% -18%, var(--rail), transparent 62%),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.022) 0 1px, transparent 1px 72px),
+    var(--bg);
+  background-attachment:fixed;
+}
+
+/* en-tête : filet d'accent qui s'éteint vers la droite */
+header.top{
+  border-bottom:3px solid var(--accent);
+  border-image:linear-gradient(90deg, var(--accent) 0 240px, var(--line) 240px 100%) 1;
+}
+header.top .sub{
+  font-variant-numeric:tabular-nums;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  font-size:12px;
+}
+
+/* ---------- bandeau de quai ---------- */
+.board{
+  position:relative;
+  margin-top:18px;
+  padding:16px 20px 26px;
+  border-radius:18px;
+  overflow:hidden;
+  color:var(--board-ink);
+  background:
+    radial-gradient(90% 130% at 88% -30%, rgba(242,140,56,.34), transparent 58%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 2px, transparent 2px 13px),
+    linear-gradient(163deg, #2A2019 0%, #1B1410 52%, #12100D 100%);
+  box-shadow:0 22px 44px -28px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.08);
+}
+/* marquage axial au sol */
+.board::after{
+  content:"";
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height:8px;
+  background:repeating-linear-gradient(90deg, var(--signal) 0 26px, transparent 26px 52px);
+  opacity:.9;
+}
+.board.hero-page::after{height:6px}
+.board h1,.board h2,.board h3{color:#FFFFFF}
+.board h1{font-size:clamp(24px,3.4vw,33px);letter-spacing:.015em}
+.board h2{font-size:16px}
+.board .lead{color:var(--board-muted);margin:6px 0 0}
+.board code{background:rgba(255,255,255,.1);color:var(--board-ink);border-radius:5px;padding:1px 6px}
+.board b{color:#FFF}
+
+/* champs posés sur le bandeau sombre */
+.board label{color:var(--board-muted);font-size:12px;letter-spacing:.09em;text-transform:uppercase}
+.board input,.board select{
+  background:rgba(255,255,255,.07);
+  border-color:rgba(255,255,255,.16);
+  color:var(--board-ink);
+  color-scheme:dark;
+}
+.board .btn.ghost{color:var(--board-ink);border-color:rgba(255,255,255,.24)}
+.board .btn.ghost:hover{background:rgba(255,255,255,.08)}
+.board .toolbar{margin:0;align-items:center}
+.board .toolbar label{min-width:0}
+
+/* onglets sur fond sombre */
+.board .tabs{margin-top:14px;padding-bottom:0}
+.board .tabs button{
+  background:rgba(255,255,255,.06);
+  border-color:rgba(255,255,255,.14);
+  color:var(--board-muted);
+  border-radius:10px;
+}
+.board .tabs button.on{
+  background:linear-gradient(160deg, var(--accent), #d2691a);
+  border-color:transparent;
+  color:var(--accent-ink);
+  font-weight:700;
+}
+
+/* réglette d'indicateurs, dans un bandeau */
+.board .kpis{grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:0;margin-top:14px}
+.board .kpi{
+  border:0;border-radius:0;background:transparent;
+  padding:4px 16px;border-left:1px solid var(--board-line);gap:4px;
+}
+.board .kpi:first-child{padding-left:0;border-left:0}
+.board .kpi span{color:var(--board-muted);font-size:11.5px;letter-spacing:.1em;line-height:1.25}
+.board .kpi b{font-size:clamp(30px,4.4vw,46px);line-height:1;color:#FFF;letter-spacing:-.01em}
+.board .kpi:nth-child(3) b,
+.board .kpi:nth-child(4) b{color:#F7A25C}
+.board .kpi:nth-child(5) b{color:#E7D9CC}
+
+@media (max-width:820px){
+  .board{padding:14px 16px 24px}
+  .board .kpis{grid-template-columns:1fr 1fr}
+  .board .kpi{padding:10px 14px;border-left:0;border-top:1px solid var(--board-line)}
+  .board .kpi:nth-child(1),.board .kpi:nth-child(2){border-top:0}
+  .board .kpi:nth-child(odd){padding-left:0}
+  .board .kpi:last-child{grid-column:1 / -1}
+}
+
+/* ---------- titres de section : trait de départ ---------- */
+h2{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:16px;
+  letter-spacing:.09em;
+  margin:26px 0 12px;
+}
+h2::before{
+  content:"";
+  flex:none;
+  width:26px;height:3px;border-radius:2px;
+  background:linear-gradient(90deg, var(--accent), var(--signal));
+}
+h2::after{
+  content:"";
+  flex:1 1 40px;
+  height:1px;
+  background:linear-gradient(90deg, var(--line), transparent);
+}
+.board h2::before{background:linear-gradient(90deg, var(--signal), rgba(255,255,255,.25))}
+.board h2::after{background:linear-gradient(90deg, rgba(255,255,255,.16), transparent)}
+/* le bordereau imprimé garde ses propres titres */
+.sheet h2{display:block;margin:16px 0 0;font-size:15px;letter-spacing:.02em}
+.sheet h2::before,.sheet h2::after{content:none}
+
+/* ---------- cartes, blocs, champs ---------- */
+fieldset,.card{
+  border-radius:16px;
+  box-shadow:var(--shadow);
+}
+legend{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 8px;
+}
+legend::before{
+  content:"";
+  width:14px;height:3px;border-radius:2px;
+  background:linear-gradient(90deg, var(--accent), var(--signal));
+}
+
+/* ---------- boutons ---------- */
+.btn{transition:transform .12s, box-shadow .15s, background .15s}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:none}
+.btn:not(.ghost){box-shadow:0 12px 22px -16px rgba(196,86,11,.9)}
+.btn.small{border-radius:9px}
+
+/* ---------- tableaux : tableau des départs ---------- */
+.tbl table thead th{
+  position:sticky;
+  top:0;
+  z-index:1;
+  background:var(--surface);
+  font-family:var(--f-display);
+  font-size:11.5px;
+  letter-spacing:.12em;
+  padding:8px;
+}
+table tbody tr{transition:background .15s}
+table tbody tr:hover{background:var(--rail)}
+
+/* l'heure de départ, lue en premier : étiquette de quai */
+#departs td:first-child a,
+#mine td:first-child a{
+  display:inline-block;
+  min-width:58px;
+  text-align:center;
+  font:600 15px var(--f-mono);
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.03em;
+  text-decoration:none;
+  color:var(--accent);
+  background:rgba(196,86,11,.1);
+  border:1px solid rgba(196,86,11,.3);
+  border-radius:8px;
+  padding:2px 8px;
+}
+#departs td:first-child a:hover,
+#mine td:first-child a:hover{background:var(--accent);color:var(--accent-ink)}
+tr.annule td:first-child a{color:var(--muted);background:transparent;border-color:var(--line)}
+
+.dash .plate,.plate{font-size:12.5px;box-shadow:inset 0 -1px 0 rgba(20,35,46,.25)}
+
+/* ---------- connexion ---------- */
+body.page-login .login-wrap{max-width:520px}
+body.page-login .board{margin-top:18px}
+body.page-login .login-card{
+  margin-top:16px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:16px 16px 18px;
+  box-shadow:var(--shadow);
+}
+body.page-login .hint{margin-top:16px}
+
+/* ---------- tendance 14 jours ---------- */
+#tendance{gap:4px;padding:16px 16px 8px}
+#tendance .meter{margin-bottom:4px!important;gap:3px}
+#tendance .meter-row .sub:first-child{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.04em}
+#tendance .bar{height:7px;border-radius:999px}
+#tendance .bar i{border-radius:999px;background-image:linear-gradient(90deg, rgba(255,255,255,.35), transparent 70%);background-blend-mode:overlay}
+#tendance .meter:last-child .bar{height:11px}
+#tendance .meter:last-child .meter-row .sub{color:var(--ink);font-weight:600}
+
+/* ---------- deux colonnes séparées par un trait de quai ---------- */
+.dash .cols{gap:28px;margin-top:0}
+@media (min-width:821px){
+  .dash .cols > div + div{border-left:1px dashed var(--line);padding-left:28px}
+}
+
+/* ---------- alerte ---------- */
+.banner{border-left:4px solid var(--warn);border-radius:12px;font-variant-numeric:tabular-nums}
+.banner.bad{border-left-color:var(--bad)}
+
+/* ---------- bordereau : feuille posée, identique à l'impression ---------- */
+.sheet{box-shadow:var(--shadow)}
+@media print{.sheet{box-shadow:none}}
+
+/* ---------- états vides ---------- */
+.empty{border-radius:16px;background:var(--surface)}
+
+/* ---------- impression : le bandeau redevient du texte ---------- */
+@media print{
+  .board{
+    background:#fff!important;
+    color:#111;
+    box-shadow:none;
+    border:1px solid #bbb;
+    border-radius:0;
+    padding:0 0 8px;
+  }
+  .board::after{display:none}
+  .board h1,.board h2,.board h3,.board b,
+  .board .kpi b,
+  .board .kpi:nth-child(3) b,
+  .board .kpi:nth-child(4) b,
+  .board .kpi:nth-child(5) b{color:#111}
+  .board label,.board .lead,.board .kpi span{color:#555}
+  .board .kpi{border-color:#ddd}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .btn,.btn:hover,table tbody tr{transition:none;transform:none}
+}
+
+/* ===========================================================================
+   Coque : navigation persistante, commune aux écrans de travail.
+   Au-dessus de 1024 px, un rail de quai à gauche ; en dessous, une barre
+   basse — la sidebar d'un écran de téléphone coûterait la largeur de saisie.
+   Le bordereau imprimé n'appelle pas nav.js : il reste hors coque.
+   =========================================================================== */
+.coque{
+  display:grid;
+  grid-template-columns:236px minmax(0,1fr);
+  align-items:start;
+}
+.coque > header.top{grid-column:1 / -1}
+.coque > #boot,.coque > #app{grid-column:2}
+.coque > .coque-nav{
+  grid-column:1;
+  grid-row:2 / span 4;
+  align-self:start;
+  position:sticky;
+  top:calc(env(safe-area-inset-top,0px) + var(--top-h,72px));
+  max-height:calc(100vh - var(--top-h,72px));
+  overflow:auto;
+}
+
+/* la largeur gagnée par le rail revient au contenu */
+.coque .wrap{max-width:860px}
+.coque .wrap.wide{max-width:1180px}
+
+/* les liens de l'en-tête deviennent des rubriques du rail */
+.coque #reportslink,.coque #adminlink{display:none!important}
+
+.coque-nav{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  padding:14px 10px calc(16px + env(safe-area-inset-bottom,0px));
+  color:var(--board-ink);
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 2px, transparent 2px 13px),
+    linear-gradient(178deg,#2A2019 0%,#1B1410 58%,#12100D 100%);
+  border-right:1px solid var(--line);
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.04);
+}
+.coque-titre{
+  margin:0 0 8px;
+  padding:0 10px;
+  font-family:var(--f-display);
+  font-size:11px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--board-muted);
+}
+.coque-nav ul{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+.coque-nav a{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 11px;
+  border:1px solid transparent;
+  border-radius:10px;
+  color:var(--board-muted);
+  text-decoration:none;
+  font-weight:600;
+  font-size:15px;
+  line-height:1.2;
+  transition:background .15s,color .15s;
+}
+.coque-nav a:hover{background:rgba(255,255,255,.07);color:#fff}
+.coque-nav a[aria-current="page"]{
+  background:rgba(242,140,56,.15);
+  border-color:rgba(242,140,56,.34);
+  color:#fff;
+  box-shadow:inset 3px 0 0 var(--signal);
+}
+.coque-nav svg{width:19px;height:19px;flex:none}
+.coque-nav a:focus-visible{outline:3px solid var(--signal);outline-offset:1px}
+
+@media (max-width:1023px){
+  .coque{
+    display:block;
+    padding-bottom:calc(64px + env(safe-area-inset-bottom,0px));
+  }
+  .coque > .coque-nav{
+    position:fixed;
+    inset:auto 0 0 0;
+    z-index:16;
+    grid-row:auto;
+    flex-direction:row;
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
+    border-right:0;
+    border-top:1px solid rgba(255,255,255,.16);
+    max-height:none;
+    overflow:visible;
+    box-shadow:0 -12px 28px -22px #000;
+  }
+  .coque-titre{display:none}
+  .coque-nav ul{display:flex;flex:1;gap:2px}
+  .coque-nav li{flex:1;min-width:0}
+  .coque-nav a{
+    flex-direction:column;
+    justify-content:center;
+    gap:3px;
+    padding:7px 3px;
+    font-size:11px;
+    letter-spacing:.01em;
+    text-align:center;
+    border-radius:9px;
+  }
+  .coque-nav a[aria-current="page"]{box-shadow:none;background:rgba(242,140,56,.2)}
+  .coque-nav svg{width:21px;height:21px}
+  .coque .toast{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+}
+
+@media print{
+  .coque{display:block!important}
+  .coque-nav{display:none!important}
+}

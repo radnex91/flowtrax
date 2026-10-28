@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Connexion · Départs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#C4560B">
+</head>
+<body class="page-login">
+
+<header class="top"><div class="wrap">
+  <div class="brand"><img class="logo" src="assets/logo.jpg" alt="Danay Express SARL"><span>Départs</span></div>
+</div></header>
+
+<main class="login-wrap">
+  <section class="board hero-page">
+    <h1>Connexion de l'agence</h1>
+    <p class="lead">À faire une seule fois sur ce téléphone.</p>
+  </section>
+
+  <form id="flogin" class="login-card" novalidate>
+    <fieldset>
+      <legend>Votre compte</legend>
+      <label for="identifiant">Identifiant
+        <input id="identifiant" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+      </label>
+      <label for="password">Mot de passe
+        <input id="password" type="password" autocomplete="current-password" required>
+        <small>Communiqué par la direction.</small>
+      </label>
+    </fieldset>
+
+    <div class="msgs" id="lmsgs"></div>
+    <div class="actions"><button class="btn" type="submit" id="lbtn">Se connecter</button></div>
+  </form>
+
+  <p class="hint" style="margin-top:16px">L'agence est déduite de votre compte : plus de code partagé entre collègues.</p>
+</main>
+
+<script type="module" src="assets/login.js"></script>
+</body>
+</html>

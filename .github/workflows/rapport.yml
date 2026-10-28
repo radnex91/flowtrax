@@ -1,0 +1,33 @@
+name: Rapport quotidien
+
+# GitHub Actions sert de planificateur : aucun serveur à maintenir.
+# 18:00 UTC — à décaler selon le fuseau des agences (ex. 16:00 UTC pour UTC+2).
+
+on:
+  schedule:
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Journée au format AAAA-MM-JJ (vide = aujourd''hui côté serveur)'
+        required: false
+        type: string
+
+jobs:
+  envoyer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appeler la fonction Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          RAPPORT_TOKEN: ${{ secrets.RAPPORT_TOKEN }}
+          JOUR: ${{ inputs.date }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$RAPPORT_TOKEN" ]; then
+            echo "::notice::SUPABASE_URL ou RAPPORT_TOKEN absent des secrets — rapport ignoré."
+            exit 0
+          fi
+          curl -fsS -X POST "$SUPABASE_URL/functions/v1/rapport-quotidien" \
+            -H "Authorization: Bearer $RAPPORT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"date\":\"${JOUR:-}\"}"

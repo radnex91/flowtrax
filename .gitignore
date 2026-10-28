@@ -1,0 +1,7 @@
+# Ce dossier n'est jamais publié : application d'origine extraite (source de vérité
+# des libellés), fichiers de travail et verrous Office.
+_reference/
+.qwen/
+node_modules/
+~$*
+*.xlsx

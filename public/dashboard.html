@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tableau de bord · Départs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#C4560B">
+</head>
+<body class="dash">
+
+<header class="top"><div class="wrap wide">
+  <div class="brand"><img class="logo" src="assets/logo.jpg" alt="Danay Express SARL"><span>Tableau de bord</span></div>
+  <span class="sub" id="who"></span>
+  <a class="btn small ghost" href="rapports.html" id="reportslink" hidden>Rapports</a>
+  <a class="btn small ghost" href="admin.html" id="adminlink" hidden>Administration</a>
+  <button class="btn small ghost" type="button" id="logout" hidden>Se déconnecter</button>
+</div></header>
+
+<div id="boot" class="loading">Chargement…</div>
+
+<section id="app" hidden>
+  <div class="wrap wide">
+    <section class="board">
+      <div class="toolbar">
+        <label for="date">Journée<input id="date" type="date"></label>
+        <button class="btn small ghost" type="button" id="refresh">Actualiser</button>
+      </div>
+
+      <div class="kpis" id="kpis"></div>
+    </section>
+
+    <div class="banner" id="alerte" hidden></div>
+
+    <div class="cols">
+      <div>
+        <h2>Taux par agence</h2>
+        <div id="par-agence"><div class="empty">Chargement…</div></div>
+      </div>
+      <div>
+        <h2>14 derniers jours</h2>
+        <div class="card" id="tendance"><div class="empty">Chargement…</div></div>
+      </div>
+    </div>
+
+    <h2>Départs de la journée</h2>
+    <div id="departs"><div class="empty">Chargement…</div></div>
+  </div>
+</section>
+
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="assets/dashboard.js"></script>
+</body>
+</html>

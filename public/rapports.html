@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rapports · Départs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#C4560B">
+</head>
+<body>
+
+<header class="top"><div class="wrap wide">
+  <div class="brand"><img class="logo" src="assets/logo.jpg" alt="Danay Express SARL"><span>Rapports</span></div>
+  <span class="sub" id="who"></span>
+  <a class="btn small ghost" href="dashboard.html">Tableau de bord</a>
+  <button class="btn small ghost" type="button" id="logout" hidden>Se déconnecter</button>
+</div></header>
+
+<div id="boot" class="loading">Chargement…</div>
+
+<section id="app" hidden>
+  <div class="wrap wide">
+    <div class="banner bad" id="msg" role="alert" hidden></div>
+
+    <section class="board">
+      <div class="toolbar">
+        <label for="du">Du<input id="du" type="date" required></label>
+        <label for="au">Au<input id="au" type="date" required></label>
+        <label for="agence">Agence<select id="agence"><option value="">Toutes</option></select></label>
+        <button class="btn small ghost" type="button" id="refresh">Actualiser</button>
+      </div>
+
+      <nav class="tabs" id="tabs" aria-label="Vues">
+        <button type="button" data-view="periode" class="on">Période</button>
+        <button type="button" data-view="histo">Historique</button>
+      </nav>
+    </section>
+
+    <div id="vue-periode">
+      <div class="kpis" id="kpis"></div>
+
+      <div class="actions" style="margin-top:16px">
+        <button class="btn small" type="button" id="exportdep">Exporter les départs (CSV)</button>
+        <button class="btn small ghost" type="button" id="exportsyn">Exporter la synthèse (CSV)</button>
+      </div>
+
+      <h2 style="margin-top:24px">Par agence</h2>
+      <div id="paragence"></div>
+
+      <h2 style="margin-top:24px">Par jour</h2>
+      <div id="parjour"></div>
+
+      <h2 style="margin-top:24px">Départs</h2>
+      <div id="liste"></div>
+    </div>
+
+    <div id="vue-histo" hidden>
+      <p class="lead">Les 200 dernières écritures de la période, du plus récent au plus ancien. Chaque ligne montre la valeur avant et après.</p>
+      <div id="histo"></div>
+    </div>
+  </div>
+</section>
+
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="assets/rapports.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Administration · Départs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#C4560B">
+</head>
+<body>
+
+<header class="top"><div class="wrap wide">
+  <div class="brand"><img class="logo" src="assets/logo.jpg" alt="Danay Express SARL"><span>Administration</span></div>
+  <span class="sub" id="who"></span>
+  <a class="btn small ghost" href="dashboard.html">Tableau de bord</a>
+  <button class="btn small ghost" type="button" id="logout" hidden>Se déconnecter</button>
+</div></header>
+
+<div id="boot" class="loading">Chargement…</div>
+
+<section id="app" hidden>
+  <div class="wrap wide">
+    <div class="banner bad" id="msg" role="alert" hidden></div>
+
+    <section class="board">
+      <nav class="tabs" id="tabs" aria-label="Sections">
+        <button type="button" data-sec="agences" class="on">Agences</button>
+        <button type="button" data-sec="axes">Lignes</button>
+        <button type="button" data-sec="vehicules">Parc</button>
+        <button type="button" data-sec="agents">Agents</button>
+        <button type="button" data-sec="comptes">Comptes</button>
+        <button type="button" data-sec="reglages">Réglages</button>
+      </nav>
+
+      <h1 id="titre" style="margin-top:20px"></h1>
+      <p class="lead" id="aide"></p>
+    </section>
+
+    <div id="zone"></div>
+  </div>
+</section>
+
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="assets/admin.js"></script>
+</body>
+</html>

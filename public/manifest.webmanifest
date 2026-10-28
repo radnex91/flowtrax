@@ -1,0 +1,15 @@
+{
+  "name": "Départs — Danay Express",
+  "short_name": "Départs",
+  "description": "Déclaration et suivi des départs",
+  "lang": "fr",
+  "start_url": "./depart.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8F4F0",
+  "theme_color": "#C4560B",
+  "icons": [
+    { "src": "assets/logo.jpg", "sizes": "any", "type": "image/jpeg", "purpose": "any" }
+  ]
+}

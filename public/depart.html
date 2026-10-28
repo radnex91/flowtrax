@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Déclarer un départ · Départs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#C4560B">
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <div class="brand"><img class="logo" src="assets/logo.jpg" alt="Danay Express SARL"><span>Départs</span></div>
+  <span class="sub" id="who"></span>
+  <button class="btn small ghost" type="button" id="logout" hidden>Se déconnecter</button>
+</div></header>
+
+<div id="boot" class="loading">Chargement du formulaire…</div>
+
+<section id="app" hidden>
+  <div class="wrap">
+    <div class="banner bad" id="tz-warning" hidden>
+      <b>Fuseau horaire non réglé.</b> Les heures et la fenêtre de modification sont
+      calculées en UTC. La direction doit régler <code>settings.timezone</code>.
+    </div>
+
+    <section class="board hero-page">
+      <h1 id="ftitle">Déclarer un départ</h1>
+      <p class="lead">Remplissez les cases, puis envoyez. Le message pour le groupe WhatsApp est préparé automatiquement.</p>
+    </section>
+
+    <div class="card" id="pick" hidden>
+      <label for="agence">Agence pour laquelle vous déclarez
+        <select id="agence"></select>
+      </label>
+      <p class="hint">Le départ sera enregistré au nom de cette agence, comme si elle l'avait saisi. Visible pour la direction et la régulation uniquement.</p>
+    </div>
+
+    <div class="editbar" id="editbar" hidden>
+      <div>
+        <b id="edit-what"></b>
+        <div class="sub" id="edit-until"></div>
+      </div>
+      <button class="btn small ghost" type="button" id="edit-cancel">Abandonner la modification</button>
+    </div>
+
+    <form id="f" novalidate>
+      <fieldset>
+        <legend>Programme du jour</legend>
+        <div class="seg" role="radiogroup" aria-label="Programme">
+          <input type="radio" name="prog" id="prog-0" value="DEBUT"><label for="prog-0">Début</label>
+          <input type="radio" name="prog" id="prog-1" value="SUITE"><label for="prog-1">Suite</label>
+          <input type="radio" name="prog" id="prog-2" value="FIN"><label for="prog-2">Fin</label>
+          <input type="radio" name="prog" id="prog-3" value="DEBUT_FIN"><label for="prog-3">Début et fin</label>
+        </div>
+        <p class="hint" id="proghint">Début : premier départ de la journée (00h00 à 23h59). Fin : dernier départ. Début et fin : départ unique de la journée.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Itinéraire</legend>
+        <div class="grid2">
+          <label for="axe">Ligne<select id="axe" required></select></label>
+          <label for="provenance">Agence de provenance<select id="provenance" required disabled></select></label>
+          <label for="destination">Destination finale<select id="destination" required disabled></select></label>
+        </div>
+        <p class="axepub" id="axepub" hidden>Axe publié : <b id="axepub-v"></b></p>
+        <div class="route" id="route"><span class="hint">Le trajet s'affichera ici.</span></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Véhicule</legend>
+        <div class="grid2">
+          <label for="immat">Immatriculation<input id="immat" class="mono" list="dl-immat" autocomplete="off" placeholder="LT0171HE" required></label>
+          <label for="bordereau">N° du bordereau<input id="bordereau" inputmode="numeric" autocomplete="off" required></label>
+        </div>
+        <p class="hint" id="vinfo">Saisissez l'immatriculation : la capacité est retrouvée dans le parc.</p>
+        <datalist id="dl-immat"></datalist>
+      </fieldset>
+
+      <fieldset>
+        <legend>Horaires et effectifs</legend>
+        <div class="grid2">
+          <label for="harr">Heure d'arrivée<input id="harr" type="time"></label>
+          <label for="hdep">Heure de départ<input id="hdep" type="time" required></label>
+        </div>
+        <div class="grid4">
+          <label for="effarr">Effectif à l'arrivée<input id="effarr" type="number" min="0" inputmode="numeric" value="0"></label>
+          <label for="dispo">Places disponibles<input id="dispo" type="number" readonly tabindex="-1"></label>
+          <label for="effcomp">Effectif complété<input id="effcomp" type="number" min="0" inputmode="numeric" required></label>
+          <label for="efftot">Effectif total<input id="efftot" type="number" readonly tabindex="-1"></label>
+        </div>
+        <div class="meter">
+          <div class="meter-row">
+            <span>Taux de remplissage de l'agence</span>
+            <span class="big" id="taux">–</span>
+          </div>
+          <div class="bar"><i id="tauxbar"></i></div>
+          <span class="sub" id="tauxinfo">Places complétées ÷ places disponibles à l'arrivée du véhicule.</span>
+        </div>
+      </fieldset>
+
+      <fieldset id="fs-pass">
+        <legend>Passants par agence intermédiaire</legend>
+        <p class="hint">Facultatif. Nombre de passagers qui restent à bord et continuent le voyage après chaque agence (effectif total moins ceux qui descendent). Remplissez les agences que vous connaissez, laissez les autres vides.</p>
+        <div class="passants" id="passants"><span class="hint">Choisissez la destination pour voir les agences intermédiaires.</span></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Équipage</legend>
+        <div class="grid3">
+          <label for="chauffeur">Chauffeur<input id="chauffeur" list="dl-ch" autocomplete="off" required></label>
+          <label for="convoyeur">Convoyeur<input id="convoyeur" list="dl-cv" autocomplete="off" required></label>
+          <label for="chefpiste">Chef de piste<input id="chefpiste" list="dl-cp" autocomplete="off" required></label>
+        </div>
+        <datalist id="dl-ch"></datalist><datalist id="dl-cv"></datalist><datalist id="dl-cp"></datalist>
+      </fieldset>
+
+      <div class="msgs" id="msgs"></div>
+      <div class="actions">
+        <button class="btn" type="submit" id="submit">Envoyer le départ</button>
+        <button class="btn ghost" type="button" id="reset">Effacer</button>
+      </div>
+    </form>
+
+    <div class="card" id="done" hidden style="margin-top:18px">
+      <h2 class="ok-title" id="done-title">Départ enregistré</h2>
+      <p class="hint">Partagez maintenant le message dans le groupe de planification.</p>
+      <div class="msgs" id="donemsg"></div>
+      <pre class="wa" id="wa"></pre>
+      <div class="actions">
+        <a class="btn" id="wa-link" href="#" target="_blank" rel="noopener">Ouvrir WhatsApp</a>
+        <button class="btn ghost" type="button" id="copy">Copier le message</button>
+        <button class="btn ghost" type="button" id="again">Nouveau départ</button>
+      </div>
+    </div>
+
+    <h2 style="margin-top:28px">Départs envoyés aujourd'hui</h2>
+    <div id="mine"><div class="empty">Chargement…</div></div>
+  </div>
+</section>
+
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="assets/depart.js"></script>
+</body>
+</html>

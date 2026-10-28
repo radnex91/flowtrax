@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bordereau · Départs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#C4560B">
+</head>
+<body>
+
+<header class="top noprint"><div class="wrap wide">
+  <div class="brand"><img class="logo" src="assets/logo.jpg" alt="Danay Express SARL"><span>Bordereau</span></div>
+  <span class="sub" id="who"></span>
+  <button class="btn small ghost" type="button" id="logout" hidden>Se déconnecter</button>
+</div></header>
+
+<div id="boot" class="loading">Chargement…</div>
+
+<section id="app" hidden>
+  <div class="wrap">
+    <div class="banner bad" id="msg" role="alert" hidden></div>
+
+    <div class="actions noprint" style="margin-top:16px">
+      <button class="btn" type="button" id="print">Imprimer / PDF</button>
+      <a class="btn ghost" href="dashboard.html">Retour</a>
+    </div>
+
+    <article class="sheet" id="sheet"></article>
+  </div>
+</section>
+
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="assets/bordereau.js"></script>
+</body>
+</html>

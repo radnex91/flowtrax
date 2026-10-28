@@ -1,0 +1,11 @@
+{
+  "name": "flowtrax",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Suivi des départs — FlowTrax (GitHub Pages + Supabase)",
+  "scripts": {
+    "test": "node --test tests/wa.test.mjs tests/pages.test.mjs tests/sql.test.mjs tests/csv.test.mjs tests/hist.test.mjs tests/fonctions.test.mjs tests/ident.test.mjs tests/portee.test.mjs",
+    "check": "node --check public/assets/wa.js && node --check public/assets/supa.js && node --check public/assets/ident.js && node --check public/assets/login.js && node --check public/assets/depart.js && node --check public/assets/dashboard.js && node --check public/assets/admin.js && node --check public/assets/rapports.js && node --check public/assets/bordereau.js && node --check public/assets/csv.js && node --check public/assets/hist.js"
+  }
+}
