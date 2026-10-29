@@ -18,6 +18,7 @@ const DATA = {
   agences: [],
   axes: [],
   sens: [],
+  fonctions: [],
   axe_agences: [],
   vehicules: [],
   agents: [],
@@ -70,6 +71,44 @@ const ROLES_OPT = () => [
   { v: 'REGULATION', l: 'Régulation — lecture de tout' },
   { v: 'DIRECTION', l: 'Direction — tout, plus cet écran' },
 ];
+
+/* Fonctions : deux colonnes pour ce que l'équipage compare et pour ce que
+   l'écran affiche. Le code reste stable ('CHEF_PISTE'), le libellé se renomme
+   librement (« Chef de piste ») sans casser les listes de la saisie. */
+const FONCTIONS_LEGACY = [
+  ['CHAUFFEUR', 'Chauffeur'],
+  ['CONVOYEUR', 'Convoyeur'],
+  ['CHEF_PISTE', 'Chef de piste'],
+]; // la liste de 0001, tant que 0011 n'est pas passée
+
+const libelleFonction = (code) => {
+  const f = DATA.fonctions.find((x) => x.code === code);
+  if (f) return f.libelle;
+  const l = FONCTIONS_LEGACY.find((x) => x[0] === code);
+  return l ? l[1] : String(code == null ? '' : code) || '—';
+};
+
+const utilisateursDeLaFonction = (code) => DATA.agents.filter((a) => a.fonction === code).length;
+
+/** « Chef d'agence » → CHEF_D_AGENCE : le code suit le libellé, une seule fois. */
+const codeDepuisLibelle = (s) =>
+  String(s == null ? '' : s)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 32);
+
+const FONCTIONS_OPT = () => {
+  if (!DATA.fonctions.length) return FONCTIONS_LEGACY.map(([code, libelle]) => ({ v: code, l: libelle }));
+  // la fonction déjà portée par l'utilisateur qu'on modifie reste proposée même
+  // désactivée, sinon l'enregistrement le reclasserait sans le dire
+  const cur = EDITE && EDITE.fonction;
+  return DATA.fonctions
+    .filter((f) => f.actif || f.code === cur)
+    .map((f) => ({ v: f.code, l: f.libelle + (f.actif ? '' : ' (désactivé)') }));
+};
 
 const SPECS = {
   agences: {
@@ -167,6 +206,46 @@ const SPECS = {
     },
   },
 
+  fonctions: {
+    titre: 'Fonctions',
+    aide: "La fonction est ce que fait une personne sur le terrain : elle remplit la liste « Fonction » de l'onglet Utilisateurs. Chauffeur, Convoyeur et Chef de piste sont les seules proposées dans l'équipage d'un départ, et leur code ne change pas — seul le libellé affiché se renomme. Une fonction portée par un utilisateur ne peut pas être supprimée : désactivez-la.",
+    table: 'fonctions',
+    cle: 'code',
+    singulier: 'une fonction',
+    ajout: true,
+    supprimable: true,
+    colonnes: [
+      { k: 'libelle', l: 'Fonction' },
+      { k: 'code', l: 'Code', f: (r) => '<span class="mono">' + esc(r.code) + '</span>' },
+      { k: 'actif', l: 'Active', f: (r) => oui(r.actif) },
+      { k: 'code', l: 'Utilisateurs', n: true, f: (r) => String(utilisateursDeLaFonction(r.code)) },
+    ],
+    champs: [
+      {
+        n: 'libelle',
+        l: 'Fonction',
+        t: 'text',
+        req: true,
+        aide: "le code se fabrique à partir du nom, une fois : ex. « Porteur accueil » donne PORTEUR_ACCUEIL",
+      },
+      { n: 'actif', l: 'Fonction active', t: 'check' },
+    ],
+    defaut: { actif: true },
+    normaliser: (o) => {
+      if (o.libelle) o.libelle = o.libelle.trim().replace(/\s+/g, ' ');
+      // Le code n'est calculé qu'à la création : renommer un libellé ne doit pas
+      // renommer le code que depart.js compare ('CHAUFFEUR', 'CONVOYEUR', …).
+      if (!EDITE && o.libelle) o.code = codeDepuisLibelle(o.libelle);
+    },
+    verifier: (o) => {
+      if (!o.libelle) return 'Donnez un nom à cette fonction.';
+      // un nom fait uniquement de signes ne donne aucun code, et la base
+      // refuserait la ligne sans que le message parle du nom
+      if (!EDITE && !o.code) return 'Ce nom ne contient ni lettre ni chiffre : écrivez par exemple « Guichetier ».';
+      return null;
+    },
+  },
+
   vehicules: {
     titre: 'Parc',
     aide: "Les places servent à figer la capacité d'un départ à sa déclaration : les changer demain ne réécrit pas l'historique.",
@@ -206,7 +285,7 @@ const SPECS = {
     supprimable: true,
     colonnes: [
       { k: 'nom', l: 'Nom' },
-      { k: 'fonction', l: 'Fonction' },
+      { k: 'fonction', l: 'Fonction', f: (r) => esc(libelleFonction(r.fonction)) },
       { k: 'agence_id', l: 'Agence', f: (r) => esc(nomAgence(r.agence_id)) },
       { k: 'actif', l: 'Actif', f: (r) => oui(r.actif) },
     ],
@@ -216,11 +295,7 @@ const SPECS = {
         n: 'fonction',
         l: 'Fonction',
         t: 'select',
-        options: () => [
-          { v: 'CHAUFFEUR', l: 'Chauffeur' },
-          { v: 'CONVOYEUR', l: 'Convoyeur' },
-          { v: 'CHEF_PISTE', l: 'Chef de piste' },
-        ],
+        options: FONCTIONS_OPT,
       },
       { n: 'agence_id', l: 'Agence de rattachement', t: 'select', num: true, vide: true, options: AGENCES_OPT },
       { n: 'actif', l: 'Actif', t: 'check' },
@@ -375,11 +450,14 @@ async function charger() {
     DATA[k] = reponses[i].data || [];
   });
 
-  // Le référentiel des sens est arrivé après coup : tant que 0010 n'est pas
-  // passée, la table manque. L'écran garde alors la liste d'hier au lieu de
-  // refuser d'un coup les agences, le parc et les comptes.
+  // Les référentiels sont arrivés après coup : tant que 0010 et 0011 ne sont
+  // pas passées, les tables manquent. L'écran garde alors les listes d'hier au
+  // lieu de refuser d'un coup les agences, le parc et les comptes.
   const sens = await sb.from('sens').select('id, nom, actif').order('nom');
   DATA.sens = sens.error ? [] : sens.data || [];
+
+  const fonctions = await sb.from('fonctions').select('code, libelle, actif').order('libelle');
+  DATA.fonctions = fonctions.error ? [] : fonctions.data || [];
 
   APPARENCE = apparenceEnBase();
   appliquer(APPARENCE);
@@ -960,7 +1038,7 @@ async function enregistrer(spec) {
 
 async function supprimer(spec, id) {
   const ligne = DATA[spec.table].find((r) => String(r[spec.cle]) === String(id));
-  const quoi = ligne ? ligne.nom || ligne.immat || ligne.code || '' : '';
+  const quoi = ligne ? ligne.nom || ligne.libelle || ligne.immat || ligne.code || '' : '';
 
   if (!confirm('Supprimer définitivement ' + (quoi ? '« ' + quoi + ' »' : 'cet enregistrement') + ' ?')) return;
 

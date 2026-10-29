@@ -216,3 +216,27 @@ test("l'import du parc n'apparaît que sur l'onglet Parc et met à jour au lieu 
   // et le formulaire d'import ne se confond pas avec le formulaire d'ajout
   assert.match(js, /\$\('imp-fichier'\)\?\.addEventListener\('change'/);
 });
+
+test("la fonction d'un utilisateur vient du référentiel, plus d'une liste écrite dans le module", () => {
+  const html = lire('public/admin.html');
+  const js = lire('public/assets/admin.js');
+
+  assert.match(html, /data-sec="fonctions"/, 'onglet Fonctions absent de la page');
+  assert.match(js, /table: 'fonctions'/, "l'onglet Fonctions doit écrire dans public.fonctions");
+  assert.match(js, /from\('fonctions'\)\.select/, 'le référentiel des fonctions doit être lu au chargement');
+
+  // la liste du champ Fonction d'un utilisateur vient du référentiel
+  assert.match(js, /options: FONCTIONS_OPT/, 'le champ Fonction doit venir du référentiel');
+  assert.ok(
+    !/options: \(\) => \[\s*\{ v: 'CHAUFFEUR'/.test(js),
+    'la liste des fonctions est encore écrite en dur dans le formulaire'
+  );
+
+  // le code se fabrique à partir du libellé, et seulement à la création : sinon
+  // renommer « Chef de piste » casserait les listes de l'équipage, qui
+  // comparent le code CHAUFFEUR / CONVOYEUR / CHEF_PISTE
+  assert.match(js, /if \(!EDITE && o\.libelle\) o\.code = codeDepuisLibelle\(o\.libelle\)/);
+
+  // la colonne du tableau affiche le libellé, jamais le code brut
+  assert.match(js, /\{ k: 'fonction', l: 'Fonction', f: \(r\) => esc\(libelleFonction\(r\.fonction\)\) \}/);
+});

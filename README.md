@@ -176,15 +176,16 @@ base et reste consultable, mais aucun message n'est envoyé.
 ## 3. L'écran Administration
 
 `admin.html`, réservé au rôle `DIRECTION` (lien « Administration » depuis le
-tableau de bord). Huit onglets, aucune saisie technique :
+tableau de bord). Neuf onglets, aucune saisie technique :
 
 | Onglet | Ce qu'on y fait |
 |---|---|
 | **Agences** | code à 4 caractères, nom, ville, active |
 | **Lignes** | nom, sens, type, active, et surtout **l'itinéraire** : l'ordre des agences |
 | **Sens** | les directions proposées à une ligne (Nord, Sud, …), actives ou non ; c'est cette liste que le formulaire d'une ligne propose |
-| **Parc** | immatriculation, marque, type, nombre de places, en service |
-| **Agents** | nom, fonction (chauffeur / convoyeur / chef de piste), agence |
+| **Parc** | immatriculation, marque, type, nombre de places, en service ; import en masse depuis Excel ou un CSV |
+| **Fonctions** | les fonctions proposées pour un utilisateur (Chauffeur, Guichetier, Chef d'agence, …) ; leur code est stable, leur libellé se renomme |
+| **Utilisateurs** | nom, fonction (prise dans le référentiel), agence |
 | **Comptes** | créer un compte, changer son identifiant ou son mot de passe, rôle, agence, actif — la clé secrète reste chez Supabase |
 | **Réglages** | fuseau horaire et fenêtre de modification, validés à l'écriture |
 | **Apparence** | logo importé, mode d'affichage (système / clair / sombre) et couleur d'accent, appliqués à tous les écrans et au bordereau |
@@ -287,7 +288,7 @@ Si un de ces messages change, le test échoue et le déploiement est bloqué.
 Pas d'étape de build : les modules ES sont servis tels quels.
 
 ```bash
-npm test        # 69 tests : messages, pages, SQL, CSV et import, historique, comptes, identifiants, portée, coque, apparence
+npm test        # 71 tests : messages, pages, SQL, CSV et import, historique, comptes, identifiants, portée, coque, apparence
 npm run check   # node --check sur les modules du navigateur
 ```
 
@@ -299,7 +300,7 @@ exigent HTTP.
 
 - Le SQL des migrations n'a pas encore été exécuté contre un projet Supabase
   réel : il a été relu et structuré, pas validé en production. Passez `0001` à
-  `0010` sur un projet de test avant la mise en service.
+  `0011` sur un projet de test avant la mise en service.
 - L'écran Administration ne peut créer de compte que si la fonction des comptes
   est déployée (étape 2) et que son nom correspond à `FONCTION_COMPTES` dans
   `public/assets/config.js`. Sinon, l'écran répond « fonction non déployée » au

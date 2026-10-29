@@ -158,3 +158,31 @@ test("le sens d'une ligne est un référentiel, plus une liste écrite dans une 
   // la séquence du serial n'est pas couverte par le « on all sequences » de 0002
   assert.match(sql, /grant usage, select on all sequences/i, 'la séquence de public.sens doit être accordée');
 });
+
+test('la fonction d’un utilisateur est un référentiel, et son code ne bouge plus', () => {
+  // 0001 fermait fonction à trois valeurs : déclarer un guichetier demandait une
+  // migration. 0011 la sort dans public.fonctions, et agents.fonction y renvoie.
+  const i = sql.lastIndexOf('create table public.fonctions');
+  assert.ok(i > 0, 'public.fonctions absente');
+
+  const bloc = sql.slice(i, sql.indexOf('create policy fonctions_read', i));
+
+  // le code est la clé : c'est lui que depart.js compare pour remplir l'équipage
+  assert.match(bloc, /code\s+text primary key/, 'le code doit être la clé de la table');
+  assert.match(bloc, /libelle text not null/, 'le libellé affiché manque');
+
+  for (const c of ['CHAUFFEUR', 'CONVOYEUR', 'CHEF_PISTE']) {
+    assert.ok(bloc.includes(`('${c}', `), `« ${c} » non semée : les utilisateurs existants perdraient leur fonction`);
+  }
+
+  // la liste fermée doit tomber, sinon une fonction ajoutée à l'écran est refusée
+  assert.match(sql, /drop constraint %I/, 'la contrainte de liste fermée doit être retirée');
+  assert.match(
+    sql,
+    /foreign key \(fonction\)\s+references public\.fonctions \(code\) on update cascade on delete restrict/,
+    'agents.fonction doit renvoyer au référentiel ; supprimer une fonction portée doit être refusé'
+  );
+
+  // clé textuelle : aucune séquence à accorder, donc aucun 42501 possible ici
+  assert.ok(!/id\s+serial primary key[\s\S]{0,40}libelle/.test(bloc), 'public.fonctions ne doit pas avoir de serial');
+});
