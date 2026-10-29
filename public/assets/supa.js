@@ -1,5 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import { chargerTheme } from './theme.js';
 
 export const isConfigured =
   Boolean(SUPABASE_URL) &&
@@ -77,6 +78,14 @@ export async function requireSession({ roles = null, requireAgence = true } = {}
     return null;
   }
 
+  // le bordereau pose son logo dans un gabarit construit plus tard : il faut
+  // que l'apparence soit à jour avant que l'écran ne dessine quoi que ce soit
+  try {
+    await chargerTheme(sb);
+  } catch {
+    // le cache local fait foi : une base muette ne bloque pas la page
+  }
+
   return ctx;
 }
 
@@ -97,13 +106,19 @@ export function erreurLisible(e) {
     return 'Cette valeur est déjà utilisée : code, immatriculation ou nom en double.';
   }
   if (/violates foreign key constraint|23503/i.test(msg)) {
-    return 'Impossible de supprimer : cet élément est utilisé par des départs. Désactivez-le au lieu de le supprimer.';
+    return 'Impossible de supprimer : cet élément est encore utilisé (départs, lignes ou comptes). Désactivez-le au lieu de le supprimer.';
   }
   if (/permission denied|42501/i.test(msg)) {
     return 'Action réservée à la direction.';
   }
   if (/column .* does not exist/i.test(msg)) {
     return 'Base de données pas à jour : exécutez les migrations les plus récentes dans Supabase.';
+  }
+  // PGRST205 couvre deux causes (table absente, ou droits non accordés) : la
+  // phrase ne doit pas en désigner une seule, sous peine de faire chercher au
+  // mauvais endroit
+  if (/PGRST205|Could not find the table/i.test(msg)) {
+    return 'Table absente ou non accordée : exécutez les migrations les plus récentes dans Supabase.';
   }
   if (/Délai de modification dépassé/i.test(msg)) {
     return 'Le délai de modification est dépassé pour ce départ.';

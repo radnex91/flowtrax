@@ -21,7 +21,8 @@ const GLOBALES = new Set([
   'TextEncoder', 'TextDecoder', 'structuredClone', 'AbortController',
   'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
   'requestAnimationFrame', 'queueMicrotask', 'CustomEvent', 'Event', 'Blob',
-  'File', 'FormData', 'Headers', 'Request', 'Response', 'getSelection',
+  'File', 'FileReader', 'Image', 'FormData', 'Headers', 'Request', 'Response', 'getSelection',
+  'getComputedStyle',
   'confirm', 'alert', 'prompt', 'parseInt', 'parseFloat', 'isNaN', 'isFinite',
   'encodeURIComponent', 'decodeURIComponent', 'encodeURI', 'decodeURI',
   // mots-clés : « if (x) return; » ressemble à un appel pour une expression

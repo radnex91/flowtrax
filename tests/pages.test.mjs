@@ -116,3 +116,103 @@ test('aucune clé service_role dans le dossier public', () => {
     assert.ok(!/service_role/.test(sansCommentaires(lire(f))), `${f} ne doit jamais contenir service_role`);
   }
 });
+
+test("chaque écran applique l'apparence mémorisée avant son premier rendu", () => {
+  // sans l'amorçage, l'écran s'ouvre aux couleurs d'origine puis saute aux
+  // vôtres dès la réponse de la base : un clignotement à chaque page
+  for (const page of PAGES.filter((p) => !p.endsWith('404.html'))) {
+    const html = lire(page);
+    const amorcage_ = html.indexOf('assets/theme-boot.js');
+    assert.ok(amorcage_ > 0, `${page} ne charge pas theme-boot.js`);
+    assert.ok(html.indexOf('assets/app.css') < amorcage_, `${page} : theme-boot.js doit suivre la feuille de style`);
+  }
+
+  const sw = lire('public/sw.js');
+  assert.ok(sw.includes("'./assets/theme-boot.js'"), 'theme-boot.js absent du cache hors-ligne');
+  assert.ok(sw.includes("'./assets/theme.js'"), 'theme.js absent du cache hors-ligne');
+});
+
+test("l'apparence s'écrit depuis Administration et se lit jusqu'au bordereau", () => {
+  const admin = lire('public/assets/admin.js');
+  for (const cle of ['theme_accent', 'theme_mode', 'logo_data']) {
+    assert.ok(admin.includes(cle), `admin.js n'écrit pas « ${cle} »`);
+  }
+  assert.match(admin, /from\('settings'\)\.upsert/, "l'apparence doit être enregistrée par upsert");
+  assert.match(admin, /reduireLogo\(/, "l'image importée doit être réduite avant l'envoi");
+  assert.match(lire('public/admin.html'), /data-sec="apparence"/, "l'onglet Apparence manque");
+
+  assert.match(lire('public/assets/bordereau.js'), /srcLogo\(\)/, 'le bordereau doit porter le logo en vigueur');
+  assert.match(lire('public/assets/supa.js'), /chargerTheme\(sb\)/, "aucun écran connecté ne rafraîchit l'apparence");
+  assert.match(lire('public/assets/login.js'), /chargerTheme\(sb\)/, "l'écran de connexion ne lit pas l'apparence");
+});
+
+test('le personnel en poste ne s’ouvre qu’au début de programme et part avec le départ', () => {
+  // le bloc est fermé dans la page : sans la règle il resterait ouvert sur une
+  // suite de programme, où plus personne ne le remplit
+  const html = lire('public/depart.html');
+  assert.match(html, /<fieldset id="fs-poste" hidden>/, 'le bloc doit être fermé au chargement');
+
+  const js = lire('public/assets/depart.js');
+  assert.match(js, /\$\('fs-poste'\)\.hidden = !personnelVisible\(\)/, 'aucune règle n’ouvre le bloc');
+
+  const i = js.indexOf('function personnelVisible');
+  assert.ok(i > 0, 'personnelVisible absente');
+  const regle = js.slice(i, js.indexOf('}', i));
+  assert.match(regle, /'DEBUT'/, 'le début de programme doit ouvrir le bloc');
+  assert.match(regle, /'DEBUT_FIN'/, 'début et fin ouvrent aussi la journée');
+
+  // le champ doit être lu à l'envoi **et** atterrir dans l'objet envoyé à la
+  // base : un champ affiché mais oublié du payload se perd sans rien dire
+  const paires = [
+    ['guichetier', 'guichetier', 'poste.guichetier'],
+    ['chef-agence', 'chef_agence', 'poste.chefAgence'],
+    ['chef-piste-poste', 'chef_piste_poste', 'poste.chefPistePoste'],
+    ['porteur-accueil', 'porteur_accueil', 'poste.porteurAccueil'],
+    ['chef-piste-logistique', 'chef_piste_logistique', 'poste.chefPisteLogistique'],
+  ];
+
+  for (const [id, colonne, valeur] of paires) {
+    assert.match(html, new RegExp(`<input id="${id}"`), `champ « ${id} » absent de la page`);
+    assert.ok(js.includes(`$('${id}').value.trim()`), `« ${id} » n’est pas lu à l’envoi`);
+    assert.ok(js.includes(`${colonne}: ${valeur} || null`), `« ${colonne} » n’est pas écrit dans la ligne`);
+  }
+});
+
+test("chaque onglet de l'administration a son écran, et le sens vient du référentiel", () => {
+  const html = lire('public/admin.html');
+  const js = lire('public/assets/admin.js');
+
+  const sections = [...html.matchAll(/data-sec="([^"]+)"/g)].map((m) => m[1]);
+  assert.ok(sections.length >= 8, 'onglets introuvables');
+  for (const s of sections) {
+    // un onglet sans section ouvrirait un écran vide, sans message
+    assert.match(js, new RegExp(`\\n  ${s}: \\{`), `aucune section « ${s} » dans admin.js`);
+  }
+
+  // le sens d'une ligne ne doit plus avoir sa liste recopiée dans le formulaire :
+  // ajouter une direction est un travail de référentiel, pas de code
+  assert.match(js, /options: SENS_OPT/, 'le sens d’une ligne doit venir du référentiel');
+  assert.doesNotMatch(js, /v: 'NORD', l: 'Nord'/, 'la liste des sens est encore écrite en dur');
+  assert.match(js, /table: 'sens'/, "l'onglet Sens doit écrire dans public.sens");
+  assert.match(js, /from\('sens'\)\.select/, 'le référentiel des sens doit être lu au chargement');
+});
+
+test("l'import du parc n'apparaît que sur l'onglet Parc et met à jour au lieu de dupliquer", () => {
+  const js = lire('public/assets/admin.js');
+
+  // la carte existe et porte les deux champs que lisent les écouteurs
+  assert.ok(js.includes("'<form class=\"card formedit\" id=\"form-import\">'"), 'carte d’import absente');
+  assert.ok(js.includes('id="imp-txt"'), 'zone de collage absente');
+  assert.ok(js.includes('id="imp-fichier"'), 'chargement de fichier absent');
+
+  // montée sur le seul onglet qui écrit dans le parc
+  assert.match(js, /if \(SECTION === 'vehicules'\) blocs\.push\(carteImportParc\(\)\);/);
+
+  // l'envoi relit le texte collé et s'appuie sur l'unicité de l'immatriculation :
+  // sans onConflict, réimporter le parc buterait sur la contrainte unique
+  assert.match(js, /parcDepuisCsv\(\$\('imp-txt'\)\.value\)/);
+  assert.match(js, /onConflict: 'immat'/);
+
+  // et le formulaire d'import ne se confond pas avec le formulaire d'ajout
+  assert.match(js, /\$\('imp-fichier'\)\?\.addEventListener\('change'/);
+});

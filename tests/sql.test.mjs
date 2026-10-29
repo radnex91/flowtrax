@@ -81,3 +81,80 @@ test('la direction déclare pour une agence sans perdre les garde-fous', () => {
     'une agence ne doit écrire que pour elle-même'
   );
 });
+
+test("l'apparence saisie est validée en base, pas seulement à l'écran", () => {
+  // une couleur tronquée ou un logo qui n'est pas une image casserait tous les
+  // écrans d'un coup : la garde doit refuser l'écriture, comme pour le fuseau
+  const i = sql.lastIndexOf('create or replace function public.settings_guard');
+  assert.ok(i > 0, 'settings_guard absente');
+
+  const bloc = sql.slice(i, sql.indexOf('$$;', i));
+
+  assert.match(bloc, /new\.key = 'theme_accent'[\s\S]{0,120}?!~\* '\^#\[0-9a-f\]\{6\}\$'/);
+  assert.match(bloc, /new\.key = 'theme_mode'[\s\S]{0,80}?not in \('auto', 'light', 'dark'\)/);
+  assert.match(bloc, /new\.key = 'logo_data'[\s\S]{0,200}?data:image\/\(png\|jpeg\|webp\|svg\\\+xml\);base64,/);
+  assert.match(bloc, /length\(new\.value\) > 400000/, 'le plafond de taille du logo doit exister en base');
+
+  assert.match(sql, /create trigger settings_guard/, 'la garde doit être branchée sur la table settings');
+});
+
+test("l'écran de connexion ne lit que les trois clés d'apparence", () => {
+  const i = sql.lastIndexOf('policy settings_read_public');
+  assert.ok(i > 0, 'settings_read_public absente : le logo ne s’afficherait pas avant connexion');
+
+  const bloc = sql.slice(i, i + 300);
+  assert.match(bloc, /for select to anon/);
+  assert.match(
+    bloc,
+    /key in \('theme_accent', 'theme_mode', 'logo_data'\)/,
+    'la lecture publique doit être limitée aux clés d’apparence'
+  );
+  assert.doesNotMatch(bloc, /using \(true\)/, 'une lecture anonyme de toute la table est interdite');
+});
+
+test('le personnel en poste est écrit sur la même ligne que le départ', () => {
+  // sans ces colonnes, l'envoi d'un départ en début de programme échoue en
+  // PGRST204 (colonne inconnue) et l'agence ne peut plus déclarer du tout
+  const colonnes = [
+    'guichetier',
+    'chef_agence',
+    'chef_piste_poste',
+    'porteur_accueil',
+    'chef_piste_logistique',
+  ];
+
+  const i = sql.lastIndexOf('create or replace view public.v_departures');
+  assert.ok(i > 0, 'v_departures absente');
+  const vue = sql.slice(i, sql.indexOf('from public.departures d', i));
+
+  for (const c of colonnes) {
+    assert.match(sql, new RegExp(`add column if not exists ${c}\\s+text`), `${c} absente de departures`);
+    assert.match(vue, new RegExp(`d\\.${c}\\b`), `la vue n'expose pas ${c} : l'écran ne pourrait pas le relire`);
+  }
+});
+
+test("le sens d'une ligne est un référentiel, plus une liste écrite dans une contrainte", () => {
+  // 0001 fermait sens à trois valeurs : ajouter une direction demandait une
+  // migration. 0010 le sort dans public.sens, et axes.sens y renvoie.
+  const i = sql.lastIndexOf('create table public.sens');
+  assert.ok(i > 0, 'public.sens absente');
+
+  const bloc = sql.slice(i, sql.indexOf('create policy sens_read', i));
+  assert.match(bloc, /nom\s+text not null unique/, 'deux sens ne peuvent pas porter le même nom');
+
+  // les trois valeurs d'hier doivent survivre : la clé étrangère les exige
+  for (const v of ['NORD', 'SUD', 'AUCUN']) {
+    assert.ok(bloc.includes(`('${v}')`), `« ${v} » non semé : les lignes existantes perdraient leur sens`);
+  }
+
+  // la liste fermée doit tomber, sinon un sens ajouté à l'écran est refusé à l'écriture
+  assert.match(sql, /drop constraint %I/, 'la contrainte de liste fermée doit être retirée');
+  assert.match(
+    sql,
+    /foreign key \(sens\)\s+references public\.sens \(nom\) on update cascade on delete restrict/,
+    'axes.sens doit renvoyer au référentiel ; une suppression ne doit pas emporter les lignes'
+  );
+
+  // la séquence du serial n'est pas couverte par le « on all sequences » de 0002
+  assert.match(sql, /grant usage, select on all sequences/i, 'la séquence de public.sens doit être accordée');
+});

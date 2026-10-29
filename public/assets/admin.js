@@ -2,6 +2,8 @@ import { sb, requireSession, erreurLisible } from './supa.js';
 import { depuisEmail, identifiantValide } from './ident.js';
 import { FONCTION_COMPTES } from './config.js';
 import { monterNav } from './nav.js';
+import { ACCENTS, appliquer, hexValide, logoAcceptable, reduireLogo } from './theme.js';
+import { parcDepuisCsv } from './csv.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) =>
@@ -15,6 +17,7 @@ const MOT_DE_PASSE_MIN = 8;
 const DATA = {
   agences: [],
   axes: [],
+  sens: [],
   axe_agences: [],
   vehicules: [],
   agents: [],
@@ -29,6 +32,7 @@ let ITIN_AXE = null; // ligne dont on édite l'itinéraire
 let ITIN = []; // agences ordonnées de cette ligne
 let MDP_ID = null; // compte dont on change le mot de passe
 let IDENT_ID = null; // compte dont on change l'identifiant
+let APPARENCE = { accent: '', mode: 'auto', logo: '' }; // apparence en base, ou en cours d'édition
 
 const nomAgence = (id) => (DATA.agences.find((a) => a.id === id) || {}).nom || '—';
 const etiquetteAgence = (a) => a.code + ' · ' + a.nom;
@@ -44,6 +48,22 @@ const tz = (v) => (v ? '<span class="mono">' + esc(v) + '</span>' : '—');
 /* ------------------------------------------------------------------ écrans */
 
 const AGENCES_OPT = () => DATA.agences.map((a) => ({ v: a.id, l: etiquetteAgence(a) }));
+
+/* Sens : un mot de la liste, affiché avec sa majuscule alors qu'il est rangé en
+   capitales ('NORD' se lit « Nord », 'NORD-EST' se lit « Nord-est »). */
+const SENS_LEGACY = ['NORD', 'SUD', 'AUCUN']; // la liste de 0001, tant que 0010 n'est pas passée
+const libelleSens = (nom) => nom.charAt(0) + nom.slice(1).toLowerCase();
+const lignesDuSens = (nom) => DATA.axes.filter((a) => a.sens === nom).length;
+
+const SENS_OPT = () => {
+  if (!DATA.sens.length) return SENS_LEGACY.map((n) => ({ v: n, l: libelleSens(n) }));
+  // le sens déjà porté par la ligne qu'on modifie reste proposé même désactivé,
+  // sinon l'enregistrement la ferait basculer sur un autre sens sans le dire
+  const cur = EDITE && EDITE.sens;
+  return DATA.sens
+    .filter((s) => s.actif || s.nom === cur)
+    .map((s) => ({ v: s.nom, l: libelleSens(s.nom) + (s.actif ? '' : ' (désactivé)') }));
+};
 
 const ROLES_OPT = () => [
   { v: 'AGENCE', l: 'Agence — saisie de son agence' },
@@ -108,11 +128,7 @@ const SPECS = {
         n: 'sens',
         l: 'Sens',
         t: 'select',
-        options: () => [
-          { v: 'NORD', l: 'Nord' },
-          { v: 'SUD', l: 'Sud' },
-          { v: 'AUCUN', l: 'Aucun' },
-        ],
+        options: SENS_OPT,
       },
       {
         n: 'type',
@@ -126,6 +142,29 @@ const SPECS = {
       { n: 'actif', l: 'Ligne active', t: 'check' },
     ],
     defaut: { sens: 'NORD', type: 'AXE', actif: true },
+  },
+
+  sens: {
+    titre: 'Sens',
+    aide: "Le sens range les lignes par direction et n'a d'effet que sur cet écran : il ne change ni les départs déjà déclarés, ni les messages. Renommer un sens renomme les lignes qui le portent ; un sens encore porté par une ligne ne peut pas être supprimé, désactivez-le.",
+    table: 'sens',
+    cle: 'id',
+    singulier: 'un sens',
+    ajout: true,
+    supprimable: true,
+    colonnes: [
+      { k: 'nom', l: 'Sens', f: (r) => esc(libelleSens(r.nom)) },
+      { k: 'actif', l: 'Actif', f: (r) => oui(r.actif) },
+      { k: 'id', l: 'Lignes', n: true, f: (r) => String(lignesDuSens(r.nom)) },
+    ],
+    champs: [
+      { n: 'nom', l: 'Sens', t: 'text', req: true, aide: 'ex. NORD, SUD, NORD-EST' },
+      { n: 'actif', l: 'Sens actif', t: 'check' },
+    ],
+    defaut: { actif: true },
+    normaliser: (o) => {
+      if (o.nom) o.nom = o.nom.toUpperCase().replace(/\s+/g, ' ');
+    },
   },
 
   vehicules: {
@@ -158,11 +197,11 @@ const SPECS = {
   },
 
   agents: {
-    titre: 'Agents',
-    aide: "Les agents apparaissent dans « Équipage » à la saisie. Un agent déjà cité par un départ ne peut pas être supprimé : désactivez-le.",
+    titre: 'Utilisateurs',
+    aide: "Les utilisateurs apparaissent dans « Équipage » à la saisie. Un utilisateur déjà cité par un départ ne peut pas être supprimé : désactivez-le.",
     table: 'agents',
     cle: 'id',
-    singulier: 'un agent',
+    singulier: 'un utilisateur',
     ajout: true,
     supprimable: true,
     colonnes: [
@@ -243,6 +282,12 @@ const SPECS = {
       }
       return null;
     },
+  },
+
+  apparence: {
+    titre: 'Apparence',
+    aide: "Le logo, le mode d'affichage et la couleur d'accent valent pour tous les comptes et tous les écrans, bordereau imprimé compris. L'aperçu est immédiat ici ; les autres appareils suivent à l'enregistrement.",
+    apparence: true,
   },
 };
 
@@ -329,7 +374,29 @@ async function charger() {
   ['agences', 'axes', 'axe_agences', 'vehicules', 'agents', 'profiles', 'settings'].forEach((k, i) => {
     DATA[k] = reponses[i].data || [];
   });
+
+  // Le référentiel des sens est arrivé après coup : tant que 0010 n'est pas
+  // passée, la table manque. L'écran garde alors la liste d'hier au lieu de
+  // refuser d'un coup les agences, le parc et les comptes.
+  const sens = await sb.from('sens').select('id, nom, actif').order('nom');
+  DATA.sens = sens.error ? [] : sens.data || [];
+
+  APPARENCE = apparenceEnBase();
+  appliquer(APPARENCE);
   return true;
+}
+
+/** Apparence telle qu'elle est en base ; vide = valeurs d'origine. */
+function apparenceEnBase() {
+  const lire = (cle, defaut) => {
+    const ligne = DATA.settings.find((s) => s.key === cle);
+    return ligne && ligne.value ? ligne.value : defaut;
+  };
+  return {
+    accent: lire('theme_accent', ''),
+    mode: lire('theme_mode', 'auto'),
+    logo: lire('logo_data', ''),
+  };
 }
 
 /* --------------------------------------------------------------- affichage */
@@ -360,12 +427,18 @@ function rendre() {
   });
 
   const blocs = [];
+  if (spec.apparence) {
+    $('zone').innerHTML = carteApparence();
+    brancherApparence();
+    return;
+  }
   if (SECTION === 'comptes') blocs.push(carteNouveauCompte());
   if (spec.ajout !== false || EDITE) blocs.push(carteForm(spec));
   if (SECTION === 'comptes' && IDENT_ID) blocs.push(carteIdentifiant());
   if (SECTION === 'comptes' && MDP_ID) blocs.push(carteMdp());
   if (SECTION === 'axes' && ITIN_AXE != null) blocs.push(carteItin());
   blocs.push(carteTable(spec));
+  if (SECTION === 'vehicules') blocs.push(carteImportParc());
   $('zone').innerHTML = blocs.join('');
 
   $('form')?.addEventListener('submit', (e) => {
@@ -388,6 +461,15 @@ function rendre() {
     EDITE = null;
     alerte(null);
     rendre();
+  });
+  $('form-import')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    importerParc();
+  });
+  $('imp-fichier')?.addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    $('imp-txt').value = await f.text();
   });
 
   $('zone').onclick = (e) => {
@@ -647,6 +729,191 @@ function carteTable(spec) {
     .join('');
 
   return '<div class="card tbl formedit" style="padding:6px 8px"><table><thead><tr>' + th + '</tr></thead><tbody>' + tr + '</tbody></table></div>';
+}
+
+/* --------------------------------------------------------------- apparence */
+
+// Le thème n'est pas une ligne de référentiel : il s'édite en aperçu réel —
+// le bandeau de cette page change sous les yeux — et n'est écrit qu'à
+// l'enregistrement, pour qu'un essai de couleur ne s'impose pas à tout le monde.
+
+const LIBELLES_APPARENCE = {
+  theme_accent: "Couleur d'accent de l'application (#RRGGBB). Vide = couleur d'origine.",
+  theme_mode: "Mode d'affichage : auto (suit le système), light ou dark.",
+  logo_data: "Logo importé depuis Administration (data:image/… encodé). Vide = logo d'origine.",
+};
+
+function accentCourant() {
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  return hexValide(v) ? v : '#C4560B';
+}
+
+function carteApparence() {
+  const courant = hexValide(APPARENCE.accent) ? APPARENCE.accent : accentCourant();
+
+  const modes = [
+    ['auto', 'Système'],
+    ['light', 'Clair'],
+    ['dark', 'Sombre'],
+  ];
+
+  const seg = modes
+    .map(
+      ([v, l]) =>
+        '<input type="radio" name="mode-apparence" id="mode-' +
+        v +
+        '" value="' +
+        v +
+        '"' +
+        (APPARENCE.mode === v ? ' checked' : '') +
+        '><label for="mode-' +
+        v +
+        '">' +
+        esc(l) +
+        '</label>'
+    )
+    .join('');
+
+  const pastilles = ACCENTS.map(
+    (c) =>
+      '<button class="swatch" type="button" data-accent="' +
+      c +
+      '" style="background:' +
+      c +
+      '" aria-label="Accent ' +
+      c +
+      '"></button>'
+  ).join('');
+
+  return (
+    '<div class="card formedit">' +
+    '<h2>Logo</h2>' +
+    '<div class="logo-line">' +
+    '<img class="logo" id="apercu-logo" src="' +
+    esc(APPARENCE.logo || 'assets/logo.jpg') +
+    '" alt="Logo en vigueur">' +
+    '<div class="logo-act">' +
+    '<label class="filebtn">Importer une image<input type="file" id="logo-fichier" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label>' +
+    '<button class="btn small ghost" type="button" data-act="logo-reset"' +
+    (APPARENCE.logo ? '' : ' disabled') +
+    ">Rétablir le logo d'origine</button>" +
+    '</div></div>' +
+    '<p class="hint" id="logo-note">PNG, JPEG, WebP ou SVG. L\'image est réduite à 320 px de côté avant d\'être enregistrée.</p>' +
+
+    '<h2 style="margin-top:8px">Affichage</h2>' +
+    '<div class="seg seg3">' +
+    seg +
+    '</div>' +
+
+    '<h2 style="margin-top:8px">Couleur d\'accent</h2>' +
+    '<div class="accent-line">' +
+    '<input type="color" id="accent-pick" value="' +
+    courant +
+    '" aria-label="Couleur d\'accent">' +
+    '<input type="text" id="accent-hex" class="mono" value="' +
+    courant +
+    '" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Code hexadécimal">' +
+    '<button class="btn small ghost" type="button" data-act="accent-reset"' +
+    (APPARENCE.accent ? '' : ' disabled') +
+    ">Couleur d'origine</button>" +
+    '</div>' +
+    '<div class="swatches">' +
+    pastilles +
+    '</div>' +
+
+    '<div class="actions">' +
+    '<button class="btn" type="button" data-act="apparence-save">Enregistrer l\'apparence</button>' +
+    '</div>' +
+    '<p class="hint">L\'aperçu est immédiat sur cet écran ; les autres appareils suivent au prochain chargement.</p>' +
+    '</div>'
+  );
+}
+
+function brancherApparence() {
+  $('logo-fichier')?.addEventListener('change', async (e) => {
+    const fichier = e.target.files && e.target.files[0];
+    if (!fichier) return;
+
+    const note = $('logo-note');
+    note.textContent = 'Préparation de l\'image…';
+
+    try {
+      APPARENCE.logo = await reduireLogo(fichier);
+      appliquer(APPARENCE);
+      rendre();
+      toast('Logo prêt : cliquez sur « Enregistrer l\'apparence ».');
+    } catch (err) {
+      note.textContent = String((err && err.message) || err);
+    }
+  });
+
+  $('accent-pick')?.addEventListener('input', (e) => accentChoisi(e.target.value));
+
+  $('accent-hex')?.addEventListener('input', (e) => {
+    const v = e.target.value.trim();
+    if (hexValide(v)) accentChoisi(v, false);
+  });
+
+  document.querySelectorAll('input[name="mode-apparence"]').forEach((r) =>
+    r.addEventListener('change', () => {
+      APPARENCE.mode = r.value;
+      appliquer(APPARENCE);
+    })
+  );
+
+  $('zone').onclick = (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+
+    if (b.dataset.accent) {
+      accentChoisi(b.dataset.accent);
+    } else if (b.dataset.act === 'logo-reset') {
+      APPARENCE.logo = '';
+      appliquer(APPARENCE);
+      rendre();
+    } else if (b.dataset.act === 'accent-reset') {
+      APPARENCE.accent = '';
+      appliquer(APPARENCE);
+      rendre();
+    } else if (b.dataset.act === 'apparence-save') {
+      enregistrerApparence();
+    }
+  };
+}
+
+function accentChoisi(v, remplirChamps = true) {
+  APPARENCE.accent = v;
+  appliquer(APPARENCE);
+  if (!remplirChamps) return;
+  if ($('accent-pick')) $('accent-pick').value = v;
+  if ($('accent-hex')) $('accent-hex').value = v;
+}
+
+async function enregistrerApparence() {
+  if (APPARENCE.logo && !logoAcceptable(APPARENCE.logo)) {
+    alerte('Logo refusé : image trop lourde. Importez une image plus petite.');
+    return;
+  }
+
+  alerte(null);
+
+  const { error } = await sb.from('settings').upsert(
+    [
+      { key: 'theme_accent', value: hexValide(APPARENCE.accent) ? APPARENCE.accent : '', label: LIBELLES_APPARENCE.theme_accent },
+      { key: 'theme_mode', value: APPARENCE.mode, label: LIBELLES_APPARENCE.theme_mode },
+      { key: 'logo_data', value: APPARENCE.logo || '', label: LIBELLES_APPARENCE.logo_data },
+    ],
+    { onConflict: 'key' }
+  );
+
+  if (error) {
+    alerte(erreurLisible(error));
+    return;
+  }
+
+  await charger();
+  rendre();
+  toast('Apparence enregistrée.');
 }
 
 /* ----------------------------------------------------------------- actions */
@@ -935,5 +1202,62 @@ async function supprimerCompte(id) {
   await charger();
   rendre();
   toast('Compte supprimé.');
+}
+
+/* ------------------------------------------------------------ parc (import) */
+
+function carteImportParc() {
+  return (
+    '<form class="card formedit" id="form-import">' +
+    '<h2>Importer le parc</h2>' +
+    '<p class="hint">Une ligne par véhicule, dans cet ordre : <b>Immatriculation</b>, <b>Marque</b>, ' +
+    '<b>Type</b>, <b>Places assises</b>, <b>En service</b> (facultatif, oui par défaut). ' +
+    'Collez directement depuis Excel, ou chargez un fichier CSV — les deux passent, ' +
+    'avec tabulations, points-virgules ou virgules.</p>' +
+    '<label class="filebtn">Charger un fichier CSV<input type="file" id="imp-fichier" accept=".csv,.txt,text/csv,text/plain"></label>' +
+    '<label for="imp-txt">Lignes à importer<textarea id="imp-txt" rows="6" spellcheck="false" ' +
+    'placeholder="LT0171HE ; Higer ; Bus 70 places ; 70 ; oui"></textarea></label>' +
+    '<div class="msgs" id="imp-msg"></div>' +
+    '<div class="actions"><button class="btn" type="submit">Importer</button></div>' +
+    '</form>'
+  );
+}
+
+async function importerParc() {
+  const r = parcDepuisCsv($('imp-txt').value);
+  const msg = $('imp-msg');
+  const refus = r.refus.map((x) => 'ligne ' + x.n + ' : ' + x.motif);
+
+  if (!r.lignes.length) {
+    msg.innerHTML =
+      '<p class="e">Rien à importer' + (refus.length ? ' — ' + refus.length + ' ligne(s) refusée(s).' : '.') + '</p>' +
+      refus.map((t) => '<p class="w">' + esc(t) + '</p>').join('');
+    return;
+  }
+
+  // L'immatriculation est déjà unique en base : réimporter un parc met à jour
+  // la ligne existante au lieu d'en créer une seconde.
+  const connus = new Set(DATA.vehicules.map((v) => v.immat));
+  const neufs = r.lignes.filter((l) => !connus.has(l.immat)).length;
+
+  msg.innerHTML = '<p class="w">Envoi de ' + r.lignes.length + ' véhicule(s)…</p>';
+
+  for (let i = 0; i < r.lignes.length; i += 200) {
+    const { error } = await sb.from('vehicules').upsert(r.lignes.slice(i, i + 200), { onConflict: 'immat' });
+    if (error) {
+      msg.innerHTML = '<p class="e">Import interrompu : ' + esc(erreurLisible(error)) + '</p>';
+      return;
+    }
+  }
+
+  $('imp-txt').value = '';
+  await charger();
+  rendre();
+  toast(r.lignes.length + ' importé(s) · ' + neufs + ' nouveau(x), ' + (r.lignes.length - neufs) + ' mis à jour');
+  if (refus.length) {
+    $('imp-msg').innerHTML =
+      '<p class="w">' + refus.length + ' ligne(s) refusée(s) :</p>' +
+      refus.map((t) => '<p class="w">' + esc(t) + '</p>').join('');
+  }
 }
 

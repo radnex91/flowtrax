@@ -51,9 +51,10 @@ legend{font-family:var(--f-display);font-size:15px;text-transform:uppercase;lett
 
 label{display:grid;gap:4px;font-size:14px;font-weight:600;min-width:0}
 label small{font-weight:400;color:var(--muted)}
-input,select{font:500 16px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 11px;width:100%;min-width:0}
-input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--signal);outline-offset:1px}
+input,select,textarea{font:500 16px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 11px;width:100%;min-width:0}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--signal);outline-offset:1px}
 input[readonly]{background:transparent}
+textarea{font-family:var(--f-mono);font-size:13px;line-height:1.5;resize:vertical}
 input.mono{font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.04em}
 
 .hint{font-size:13px;color:var(--muted);margin:0}
@@ -574,3 +575,19 @@ body.page-login .hint{margin-top:16px}
   .coque{display:block!important}
   .coque-nav{display:none!important}
 }
+
+/* ---------- Administration → Apparence ---------- */
+.seg.seg3{grid-template-columns:repeat(3,1fr)}
+.logo-line{display:flex;flex-wrap:wrap;align-items:center;gap:16px}
+.logo-line .logo{height:84px;max-width:240px;object-fit:contain}
+.logo-act{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.filebtn{display:inline-flex;align-items:center;font:600 14px var(--f-body);border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:7px 12px;cursor:pointer;background:transparent}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0}
+.filebtn:focus-within{outline:3px solid var(--signal);outline-offset:1px}
+#form-import .filebtn{justify-self:start}
+.accent-line{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.accent-line input[type=color]{flex:0 0 auto;width:56px;height:42px;padding:2px;cursor:pointer}
+.accent-line input[type=text]{flex:0 0 auto;width:128px}
+.swatches{display:flex;flex-wrap:wrap;gap:10px}
+.swatch{width:36px;height:36px;border-radius:50%;border:2px solid var(--line);padding:0;cursor:pointer}
+.swatch:hover{border-color:var(--ink)}

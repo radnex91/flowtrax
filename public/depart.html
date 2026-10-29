@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <link rel="stylesheet" href="assets/app.css">
+<script src="assets/theme-boot.js"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#C4560B">
 </head>
@@ -60,6 +61,19 @@
         <p class="hint" id="proghint">Début : premier départ de la journée (00h00 à 23h59). Fin : dernier départ. Début et fin : départ unique de la journée.</p>
       </fieldset>
 
+      <fieldset id="fs-poste" hidden>
+        <legend>Personnel en poste</legend>
+        <div class="grid2">
+          <label for="guichetier">Guichetier<input id="guichetier" autocomplete="off"></label>
+          <label for="chef-agence">Chef d'agence<input id="chef-agence" autocomplete="off"></label>
+        </div>
+        <div class="grid3">
+          <label for="chef-piste-poste">Chef de piste en poste<input id="chef-piste-poste" autocomplete="off"></label>
+          <label for="porteur-accueil">Porteur accueil<input id="porteur-accueil" autocomplete="off"></label>
+          <label for="chef-piste-logistique">Chef de piste logistique<input id="chef-piste-logistique" autocomplete="off"></label>
+        </div>
+      </fieldset>
+
       <fieldset>
         <legend>Itinéraire</legend>
         <div class="grid2">
@@ -74,21 +88,20 @@
       <fieldset>
         <legend>Véhicule</legend>
         <div class="grid2">
-          <label for="immat">Immatriculation<input id="immat" class="mono" list="dl-immat" autocomplete="off" placeholder="LT0171HE" required></label>
+          <label for="immat">Immatriculation<select id="immat" required></select></label>
           <label for="bordereau">N° du bordereau<input id="bordereau" inputmode="numeric" autocomplete="off" required></label>
         </div>
-        <p class="hint" id="vinfo">Saisissez l'immatriculation : la capacité est retrouvée dans le parc.</p>
-        <datalist id="dl-immat"></datalist>
+        <p class="hint" id="vinfo">Choisissez le véhicule : sa capacité est retrouvée dans le parc.</p>
       </fieldset>
 
       <fieldset>
         <legend>Horaires et effectifs</legend>
         <div class="grid2">
-          <label for="harr">Heure d'arrivée<input id="harr" type="time"></label>
+          <label for="harr" id="lab-harr">Heure d'arrivée<input id="harr" type="time"></label>
           <label for="hdep">Heure de départ<input id="hdep" type="time" required></label>
         </div>
         <div class="grid4">
-          <label for="effarr">Effectif à l'arrivée<input id="effarr" type="number" min="0" inputmode="numeric" value="0"></label>
+          <label for="effarr" id="lab-effarr">Effectif à l'arrivée<input id="effarr" type="number" min="0" inputmode="numeric" value="0"></label>
           <label for="dispo">Places disponibles<input id="dispo" type="number" readonly tabindex="-1"></label>
           <label for="effcomp">Effectif complété<input id="effcomp" type="number" min="0" inputmode="numeric" required></label>
           <label for="efftot">Effectif total<input id="efftot" type="number" readonly tabindex="-1"></label>

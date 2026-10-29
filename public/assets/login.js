@@ -1,5 +1,6 @@
 import { sb, isConfigured } from './supa.js';
 import { versEmail } from './ident.js';
+import { chargerTheme } from './theme.js';
 
 const msgs = document.getElementById('lmsgs');
 const form = document.getElementById('flogin');
@@ -28,6 +29,10 @@ if (!isConfigured) {
   afficher(ERREURS.config);
   btn.disabled = true;
 } else {
+  // pas de session ici : la policy settings_read_public n'ouvre que les trois
+  // clés d'apparence, pour que cet écran porte le logo et les couleurs choisis
+  chargerTheme(sb);
+
   sb.auth.getSession().then(({ data }) => {
     if (data.session) verifierEtRediriger();
   });

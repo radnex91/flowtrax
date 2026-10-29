@@ -2,7 +2,7 @@
    Objectif : que l'écran de saisie s'ouvre même si le réseau tombe,
    pas de synchronisation hors-ligne (l'écriture exige le serveur). */
 
-const CACHE = 'flowtrax-v10';
+const CACHE = 'flowtrax-v12';
 
 const SHELL = [
   './index.html',
@@ -17,6 +17,8 @@ const SHELL = [
   './assets/supa.js',
   './assets/ident.js',
   './assets/nav.js',
+  './assets/theme.js',
+  './assets/theme-boot.js',
   './assets/login.js',
   './assets/depart.js',
   './assets/dashboard.js',

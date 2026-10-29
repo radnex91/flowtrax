@@ -1,5 +1,6 @@
 import { sb, requireSession, erreurLisible } from './supa.js';
 import { hhmm, pct, PROGRAMMES } from './wa.js';
+import { srcLogo } from './theme.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) =>
@@ -75,7 +76,7 @@ function rendre(d) {
 
   $('sheet').innerHTML =
     '<div class="sheet-h">' +
-    '<img class="logo" src="assets/logo.jpg" alt="">' +
+    '<img class="logo" src="' + srcLogo() + '" alt="">' +
     '<div><h1>Bordereau de départ</h1><p class="sub">Danay Express SARL</p></div>' +
     '<div class="sheet-no"><span class="sub">N°</span><b>' + esc(d.bordereau) + '</b></div>' +
     '</div>' +

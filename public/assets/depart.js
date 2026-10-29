@@ -126,7 +126,9 @@ async function loadConfig() {
     sb.from('agences').select('id, code, nom').eq('actif', true).order('nom'),
     sb.from('axes').select('id, nom, sens, type').eq('actif', true).order('nom'),
     sb.from('axe_agences').select('axe_id, agence_id, position').order('position'),
-    sb.from('vehicules').select('id, immat, marque, type, places').eq('actif', true).order('immat'),
+    // tous les véhicules, actifs ou non : un départ déjà déclaré avec un
+    // véhicule sorti du parc doit rester modifiable
+    sb.from('vehicules').select('id, immat, marque, type, places, actif').order('immat'),
     sb.from('agents').select('nom, fonction').eq('actif', true).order('nom'),
     sb.from('settings').select('value').eq('key', 'timezone').maybeSingle(),
   ]);
@@ -169,10 +171,11 @@ function start() {
   choisirAgence();
 
   fillCrew();
-  $('dl-immat').innerHTML = Object.keys(VEH)
-    .sort()
-    .map((k) => '<option value="' + esc(k) + '">' + VEH[k].places + ' places · ' + esc(VEH[k].type) + '</option>')
-    .join('');
+
+  // la liste du parc remplace la saisie libre : une immatriculation tapée à la
+  // main produisait des « LT017lHE » que la base refusait, ou pire, un doublon
+  // invisible jusqu'au bordereau imprimé
+  listerVehicules();
 
   buildAxes();
 }
@@ -197,6 +200,17 @@ function majWho() {
       ? 'Agence : ' + SESSION.agenceNom
       : (SESSION.role === 'DIRECTION' ? 'Direction' : 'Régulation') +
         ' · déclaration pour ' + SESSION.agenceNom;
+}
+
+// Un véhicule sorti du parc n'est plus proposé, sauf celui du départ qu'on
+// modifie : sans lui, la modification d'un départ existant serait impossible.
+function listerVehicules(immatEnPlus) {
+  const liste = Object.keys(VEH)
+    .filter((k) => VEH[k].actif || k === immatEnPlus)
+    .sort()
+    .map((k) => ({ value: k, label: k }));
+
+  opts($('immat'), liste, 'Choisir un véhicule');
 }
 
 function buildAxes() {
@@ -289,6 +303,13 @@ function onAxe() {
 
 function onProv() {
   const same = Number($('provenance').value) === AGENCE_ID;
+
+  // L'agence de départ n'a ni heure d'arrivée ni effectif arrivé à noter : le
+  // véhicule part de chez elle. C'est l'agence intermédiaire qui le reçoit et
+  // sait à quelle heure et à combien il est arrivé : ces champs n'apparaissent
+  // que pour celle-là.
+  $('lab-harr').hidden = same;
+  $('lab-effarr').hidden = same;
   $('effarr').disabled = same;
   if (same) $('effarr').value = 0;
   $('harr').disabled = same;
@@ -393,11 +414,11 @@ function calc() {
   bar.style.background = t == null ? 'var(--line)' : 'var(--' + cls(t) + ')';
 
   $('vinfo').innerHTML = !ve
-    ? 'Saisissez l\'immatriculation : la capacité est retrouvée dans le parc.'
+    ? 'Choisissez le véhicule : sa capacité est retrouvée dans le parc.'
     : ve.v
       ? '<span class="plate">' + esc(ve.k) + '</span> ' + esc(ve.v.marque) + ' ' + esc(ve.v.type) +
         ' · <b>' + ve.v.places + ' places</b>'
-      : 'Immatriculation inconnue dans le parc : vérifiez la saisie.';
+      : 'Ce véhicule n\'est plus dans le parc : choisissez-en un autre.';
 
   $('tauxinfo').textContent =
     dispo == null
@@ -448,7 +469,8 @@ function check() {
   return c;
 }
 
-['effarr', 'effcomp', 'immat', 'harr', 'hdep'].forEach((id) => $(id).addEventListener('input', check));
+['effarr', 'effcomp', 'harr', 'hdep'].forEach((id) => $(id).addEventListener('input', check));
+$('immat').addEventListener('change', check);
 $('axe').addEventListener('change', onAxe);
 $('provenance').addEventListener('change', onProv);
 $('destination').addEventListener('change', renderRoute);
@@ -465,6 +487,18 @@ function setProg(v) {
   document.querySelectorAll('input[name="prog"]').forEach((x) => {
     x.checked = x.value === v;
   });
+  majPersonnel();
+}
+
+// Le personnel en poste ne se note qu'une fois, à l'ouverture de la journée :
+// les autres départs de la journée partent avec les mêmes personnes.
+function personnelVisible() {
+  const p = prog();
+  return p === 'DEBUT' || p === 'DEBUT_FIN';
+}
+
+function majPersonnel() {
+  $('fs-poste').hidden = !personnelVisible();
 }
 
 function actifs() {
@@ -479,6 +513,7 @@ function proposeProg() {
 document.querySelectorAll('input[name="prog"]').forEach((x) => {
   x.addEventListener('change', () => {
     progManuel = true;
+    majPersonnel();
     check();
   });
 });
@@ -549,10 +584,22 @@ function collect() {
     chauffeur: $('chauffeur').value.trim(),
     convoyeur: $('convoyeur').value.trim(),
     chefPiste: $('chefpiste').value.trim(),
+    // hors début de programme, le bloc est fermé : rien de saisi n'est envoyé
+    poste: personnelVisible()
+      ? {
+          guichetier: $('guichetier').value.trim(),
+          chefAgence: $('chef-agence').value.trim(),
+          chefPistePoste: $('chef-piste-poste').value.trim(),
+          porteurAccueil: $('porteur-accueil').value.trim(),
+          chefPisteLogistique: $('chef-piste-logistique').value.trim(),
+        }
+      : null,
   };
 }
 
 async function enregistrer(d) {
+  const poste = d.poste || {};
+
   const payload = {
     agence_id: AGENCE_ID,
     axe_id: d.axeId,
@@ -565,6 +612,11 @@ async function enregistrer(d) {
     h_depart: d.hDep,
     eff_arrivee: d.effArr,
     eff_complete: d.effComp,
+    guichetier: poste.guichetier || null,
+    chef_agence: poste.chefAgence || null,
+    chef_piste_poste: poste.chefPistePoste || null,
+    porteur_accueil: poste.porteurAccueil || null,
+    chef_piste_logistique: poste.chefPisteLogistique || null,
   };
 
   let id;
@@ -717,6 +769,8 @@ $('copy').addEventListener('click', () => {
 function resetForm() {
   const ax = $('axe').value;
   $('f').reset();
+  // le véhicule du départ qu'on vient de modifier n'a plus à être proposé
+  listerVehicules();
   $('axe').value = ax;
   progManuel = false;
   onAxe();
@@ -766,6 +820,9 @@ function startEdit(x) {
   $('destination').value = String(x.destination_id);
   onProv();
 
+  // un véhicule sorti du parc n'est plus proposé : on le remet dans la liste
+  // pour que la modification du départ existant reste possible
+  listerVehicules(x.immat);
   $('immat').value = x.immat;
   $('bordereau').value = x.bordereau;
   $('harr').value = hhmm(x.h_arrivee);
@@ -784,6 +841,12 @@ function startEdit(x) {
   $('chauffeur').value = crew.CHAUFFEUR || '';
   $('convoyeur').value = crew.CONVOYEUR || '';
   $('chefpiste').value = crew.CHEF_PISTE || '';
+
+  $('guichetier').value = x.guichetier || '';
+  $('chef-agence').value = x.chef_agence || '';
+  $('chef-piste-poste').value = x.chef_piste_poste || '';
+  $('porteur-accueil').value = x.porteur_accueil || '';
+  $('chef-piste-logistique').value = x.chef_piste_logistique || '';
 
   $('ftitle').textContent = 'Modifier un départ';
   $('submit').textContent = 'Enregistrer la modification';
