@@ -136,7 +136,7 @@ test('le personnel en poste est écrit sur la même ligne que le départ', () =>
 test("le sens d'une ligne est un référentiel, plus une liste écrite dans une contrainte", () => {
   // 0001 fermait sens à trois valeurs : ajouter une direction demandait une
   // migration. 0010 le sort dans public.sens, et axes.sens y renvoie.
-  const i = sql.lastIndexOf('create table public.sens');
+  const i = sql.lastIndexOf('create table if not exists public.sens');
   assert.ok(i > 0, 'public.sens absente');
 
   const bloc = sql.slice(i, sql.indexOf('create policy sens_read', i));
@@ -146,6 +146,11 @@ test("le sens d'une ligne est un référentiel, plus une liste écrite dans une 
   for (const v of ['NORD', 'SUD', 'AUCUN']) {
     assert.ok(bloc.includes(`('${v}')`), `« ${v} » non semé : les lignes existantes perdraient leur sens`);
   }
+
+  // la table peut déjà exister d'un premier passage interrompu (42P07) : le
+  // fichier doit se rejouer, sinon on ne peut plus jamais finir la migration
+  assert.match(sql, /drop policy if exists sens_read on public\.sens/);
+  assert.match(sql, /drop policy if exists sens_write on public\.sens/);
 
   // la liste fermée doit tomber, sinon un sens ajouté à l'écran est refusé à l'écriture
   assert.match(sql, /drop constraint %I/, 'la contrainte de liste fermée doit être retirée');
@@ -162,7 +167,7 @@ test("le sens d'une ligne est un référentiel, plus une liste écrite dans une 
 test('la fonction d’un utilisateur est un référentiel, et son code ne bouge plus', () => {
   // 0001 fermait fonction à trois valeurs : déclarer un guichetier demandait une
   // migration. 0011 la sort dans public.fonctions, et agents.fonction y renvoie.
-  const i = sql.lastIndexOf('create table public.fonctions');
+  const i = sql.lastIndexOf('create table if not exists public.fonctions');
   assert.ok(i > 0, 'public.fonctions absente');
 
   const bloc = sql.slice(i, sql.indexOf('create policy fonctions_read', i));
@@ -174,6 +179,11 @@ test('la fonction d’un utilisateur est un référentiel, et son code ne bouge 
   for (const c of ['CHAUFFEUR', 'CONVOYEUR', 'CHEF_PISTE']) {
     assert.ok(bloc.includes(`('${c}', `), `« ${c} » non semée : les utilisateurs existants perdraient leur fonction`);
   }
+
+  // même leçon que 0010 : une table déjà créée par un passage interrompu (42P07)
+  // ne doit pas empêcher de finir la migration
+  assert.match(sql, /drop policy if exists fonctions_read on public\.fonctions/);
+  assert.match(sql, /drop policy if exists fonctions_write on public\.fonctions/);
 
   // la liste fermée doit tomber, sinon une fonction ajoutée à l'écran est refusée
   assert.match(sql, /drop constraint %I/, 'la contrainte de liste fermée doit être retirée');

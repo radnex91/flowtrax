@@ -18,9 +18,14 @@
 -- Fonction en texte et non en serial : la clé est le code lui-même, aucune
 -- séquence à accorder (0002 a accordé « on all sequences » sur celles qui
 -- existaient alors ; une séquence créée après coup vaudrait un 42501).
+--
+-- Rejouable : comme 0010, un premier passage peut s'être arrêté après la
+-- création de la table (42P07), laissant la clé étrangère, les policies et les
+-- droits à poser. Chaque étape se rejoue sans erreur, et la ligne de contrôle
+-- dit où l'on en est.
 -- ---------------------------------------------------------------------------
 
-create table public.fonctions (
+create table if not exists public.fonctions (
   code    text primary key check (code = upper(btrim(code)) and btrim(code) <> ''),
   libelle text not null check (btrim(libelle) <> ''),
   actif   boolean not null default true
@@ -65,15 +70,17 @@ alter table public.agents
 -- ---------------------------------------------------------------------------
 alter table public.fonctions enable row level security;
 
+drop policy if exists fonctions_read on public.fonctions;
+drop policy if exists fonctions_write on public.fonctions;
 create policy fonctions_read on public.fonctions for select to authenticated using (true);
 create policy fonctions_write on public.fonctions for all to authenticated
   using (public.my_role() = 'DIRECTION') with check (public.my_role() = 'DIRECTION');
 
 grant select, insert, update, delete on public.fonctions to authenticated;
 
--- Contrôle : 3 | <utilisateurs> | 1 | 0 attendu — trois fonctions semées,
+-- Contrôle : 3 | <utilisateurs> | 1 | 0 | 2 attendu — trois fonctions semées,
 -- autant d'utilisateurs que la table en porte, la clé étrangère en place, plus
--- aucune contrainte de liste fermée sur agents.fonction.
+-- aucune contrainte de liste fermée sur agents.fonction, et les deux policies.
 select
   (select count(*) from public.fonctions) as fonctions,
   (select count(*) from public.agents where fonction is not null) as utilisateurs,
@@ -81,4 +88,6 @@ select
     where conrelid = 'public.agents'::regclass and conname = 'agents_fonction_fk') as cle_etrangere,
   (select count(*) from pg_constraint
     where conrelid = 'public.agents'::regclass and contype = 'c'
-      and pg_get_constraintdef(oid) ilike '%fonction%') as ancienne_contrainte;
+      and pg_get_constraintdef(oid) ilike '%fonction%') as ancienne_contrainte,
+  (select count(*) from pg_policies
+    where schemaname = 'public' and tablename = 'fonctions') as policies;

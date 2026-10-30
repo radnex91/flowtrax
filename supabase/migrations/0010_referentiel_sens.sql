@@ -10,9 +10,14 @@
 -- cascade) ; supprimer un sens encore porté par une ligne échoue (on delete
 -- restrict), ce qui laisse le message « désactivez-le au lieu de le supprimer »
 -- faire son travail.
+--
+-- Rejouable : un premier passage peut s'être arrêté après la création de la
+-- table (42P07 « relation sens already exists »), laissant la clé étrangère,
+-- les policies et les droits à poser. Chaque étape ci-dessous se rejoue donc
+-- sans erreur, et la ligne de contrôle dit où l'on en est.
 -- ---------------------------------------------------------------------------
 
-create table public.sens (
+create table if not exists public.sens (
   id    serial primary key,
   nom   text not null unique check (btrim(nom) <> ''),
   actif boolean not null default true
@@ -56,6 +61,8 @@ alter table public.axes
 -- ---------------------------------------------------------------------------
 alter table public.sens enable row level security;
 
+drop policy if exists sens_read on public.sens;
+drop policy if exists sens_write on public.sens;
 create policy sens_read  on public.sens for select to authenticated using (true);
 create policy sens_write on public.sens for all to authenticated
   using (public.my_role() = 'DIRECTION') with check (public.my_role() = 'DIRECTION');
@@ -63,9 +70,9 @@ create policy sens_write on public.sens for all to authenticated
 grant select, insert, update, delete on public.sens to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
 
--- Contrôle : 3 | <lignes> | 1 | 0 attendu — trois sens semés, au moins une
+-- Contrôle : 3 | <lignes> | 1 | 0 | 2 attendu — trois sens semés, au moins une
 -- ligne portant un sens, la clé étrangère en place, plus aucune contrainte de
--- liste fermée sur axes.sens.
+-- liste fermée sur axes.sens, et les deux policies du référentiel.
 select
   (select count(*) from public.sens) as sens,
   (select count(*) from public.axes where sens is not null) as lignes,
@@ -73,4 +80,6 @@ select
     where conrelid = 'public.axes'::regclass and conname = 'axes_sens_fk') as cle_etrangere,
   (select count(*) from pg_constraint
     where conrelid = 'public.axes'::regclass and contype = 'c'
-      and pg_get_constraintdef(oid) ilike '%sens%') as ancienne_contrainte;
+      and pg_get_constraintdef(oid) ilike '%sens%') as ancienne_contrainte,
+  (select count(*) from pg_policies
+    where schemaname = 'public' and tablename = 'sens') as policies;
