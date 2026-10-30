@@ -28,11 +28,33 @@
 
   var r = document.documentElement;
 
-  if (v.mode === 'light' || v.mode === 'dark') r.setAttribute('data-theme', v.mode);
+  function poserAccent(hex) {
+    var n = hex.replace('#', '');
+    var rgb = [0, 2, 4]
+      .map(function (i) {
+        return parseInt(n.slice(i, i + 2), 16);
+      })
+      .join(',');
+    r.style.setProperty('--ft-accent', hex);
+    r.style.setProperty('--accent', hex);
+    r.style.setProperty('--accent-ink', encre(hex));
+    r.style.setProperty('--bs-primary', hex);
+    r.style.setProperty('--bs-primary-rgb', rgb);
+    r.style.setProperty('--bs-link-color', hex);
+    r.style.setProperty('--bs-link-color-rgb', rgb);
+  }
+
+  // Bootstrap ne connaît que deux thèmes, data-bs-theme ; « auto » se résout
+  // ici, avant le premier rendu, pour éviter le clignotement clair → sombre.
+  var sombre =
+    v.mode === 'dark' ||
+    (v.mode !== 'light' &&
+      !!window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches);
+  r.setAttribute('data-bs-theme', sombre ? 'dark' : 'light');
 
   if (/^#[0-9a-f]{6}$/i.test(v.accent || '')) {
-    r.style.setProperty('--accent', v.accent);
-    r.style.setProperty('--accent-ink', encre(v.accent));
+    poserAccent(v.accent);
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', v.accent);
   }

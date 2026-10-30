@@ -288,13 +288,37 @@ Si un de ces messages change, le test échoue et le déploiement est bloqué.
 Pas d'étape de build : les modules ES sont servis tels quels.
 
 ```bash
-npm test        # 71 tests : messages, pages, SQL, CSV et import, historique, comptes, identifiants, portée, coque, apparence
+npm test        # 74 tests : messages, pages, SQL, CSV et import, historique, comptes, identifiants, portée, coque, apparence
 npm run check   # node --check sur les modules du navigateur
 ```
 
 Pour travailler en local, servez `public/` avec n'importe quel serveur statique
 (`npx serve public`), jamais en `file://` — les modules ES et le service worker
 exigent HTTP.
+
+### Bootstrap 5
+
+Bootstrap 5.3.3 est **recopié dans le dépôt** (`public/vendor/bootstrap/`), pas
+chargé depuis un CDN : l'écran de saisie doit s'ouvrir sans réseau, et un CDN
+tomberait en même temps que le reste. Chaque page charge, dans cet ordre :
+
+```html
+<link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css">
+<link rel="stylesheet" href="assets/app.css">
+```
+
+`assets/app.css` n'est plus une feuille autonome : c'est une **couche de thème**
+qui branche l'identité de l'application sur les jetons de Bootstrap
+(`--bs-primary`, `--bs-body-bg`, `--bs-btn-*`, `--bs-border-radius`…). Les
+composants servis sont donc ceux de Bootstrap — boutons, champs, cartes,
+tableaux, alertes — et un changement de couleur d'accent ou de mode dans
+Administration les suit tous. Seuls les blocs qui n'existent pas dans Bootstrap
+gardent leur propre style : rail de navigation, bandeau de quai, plaque
+d'immatriculation, bordereau imprimé.
+
+Le mode « auto » est résolu en `data-bs-theme="dark"|"light"` avant le premier
+rendu (`assets/theme-boot.js`), pour éviter le clignotement clair → sombre. Les
+deux fichiers `vendor/bootstrap/` sont précachés par le service worker.
 
 ## 10. Limites connues
 

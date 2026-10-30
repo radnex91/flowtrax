@@ -240,3 +240,49 @@ test("la fonction d'un utilisateur vient du référentiel, plus d'une liste écr
   // la colonne du tableau affiche le libellé, jamais le code brut
   assert.match(js, /\{ k: 'fonction', l: 'Fonction', f: \(r\) => esc\(libelleFonction\(r\.fonction\)\) \}/);
 });
+
+test('Bootstrap est servi par l’application elle-même, avant la feuille du thème', () => {
+  for (const page of PAGES) {
+    const html = lire(page);
+    const css = html.indexOf('href="vendor/bootstrap/bootstrap.min.css"');
+    const app = html.indexOf('href="assets/app.css"');
+    assert.ok(css > -1, `${page} ne charge pas Bootstrap`);
+    assert.ok(app > -1, `${page} ne charge pas app.css`);
+    // app.css pilote les variables de Bootstrap : lue avant, elle serait écrasée
+    assert.ok(css < app, `${page} : Bootstrap doit être chargé avant app.css`);
+
+    const module_ = html.indexOf('<script type="module"');
+    if (module_ > -1) {
+      const bundle = html.indexOf('src="vendor/bootstrap/bootstrap.bundle.min.js"');
+      assert.ok(bundle > -1, `${page} ne charge pas le JavaScript de Bootstrap`);
+      assert.ok(bundle < module_, `${page} : le bundle doit précéder le module applicatif`);
+    }
+  }
+});
+
+test('le mode et l’accent passent par les variables de Bootstrap', () => {
+  const css = lire('public/assets/app.css');
+  const module_ = lire('public/assets/theme.js');
+  const amorcage = lire('public/assets/theme-boot.js');
+
+  // Bootstrap ne connaît que data-bs-theme : « auto » doit être résolu en amont
+  for (const f of [module_, amorcage]) {
+    assert.match(f, /data-bs-theme/);
+    assert.match(f, /prefers-color-scheme: dark/);
+    assert.doesNotMatch(f, /setAttribute\('data-theme'/, 'un data-theme subsiste : il ne colore plus rien');
+    assert.match(f, /--bs-primary-rgb/);
+  }
+
+  // la feuille de thème doit exister dans les deux modes, sans quoi le mode
+  // sombre de Bootstrap afficherait ses gris par défaut
+  assert.match(css, /\[data-bs-theme="dark"\]/);
+  assert.match(css, /--bs-body-bg/);
+});
+
+test('le service worker met Bootstrap en cache et change de version', () => {
+  const sw = lire('public/sw.js');
+  const n = Number(sw.match(/const CACHE = 'flowtrax-v(\d+)'/)?.[1]);
+  assert.ok(n >= 14, `cache encore en v${n} : les pages garderaient l’ancien app.css`);
+  assert.match(sw, /'\.\/vendor\/bootstrap\/bootstrap\.min\.css'/);
+  assert.match(sw, /'\.\/vendor\/bootstrap\/bootstrap\.bundle\.min\.js'/);
+});

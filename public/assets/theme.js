@@ -42,23 +42,65 @@ export function logoAcceptable(v) {
   return /^data:image\/(png|jpeg|webp|svg\+xml);base64,/.test(s) && s.length <= LOGO_MAX;
 }
 
+// Node importe ce module pour les tests : `window` n'y existe pas.
+const SYSTEME =
+  typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(prefers-color-scheme: dark)')
+    : null;
+let modeCourant = 'auto';
+let suivi = false;
+
+/** Bootstrap ne connaît que data-bs-theme : « auto » se résout ici. */
+function poserMode() {
+  if (typeof document === 'undefined') return;
+  const sombre =
+    modeCourant === 'dark' || (modeCourant === 'auto' && !!SYSTEME && SYSTEME.matches);
+  document.documentElement.setAttribute('data-bs-theme', sombre ? 'dark' : 'light');
+}
+
+function suivreSysteme() {
+  if (suivi || !SYSTEME) return;
+  suivi = true;
+  const suivre = () => {
+    if (modeCourant === 'auto') poserMode();
+  };
+  if (SYSTEME.addEventListener) SYSTEME.addEventListener('change', suivre);
+  else if (SYSTEME.addListener) SYSTEME.addListener(suivre);
+}
+
 export function appliquer(valeurs) {
   const v = valeurs || {};
   const r = document.documentElement;
-  const mode = MODES.includes(v.mode) ? v.mode : 'auto';
 
-  if (mode === 'auto') r.removeAttribute('data-theme');
-  else r.setAttribute('data-theme', mode);
+  modeCourant = MODES.includes(v.mode) ? v.mode : 'auto';
+  poserMode();
+  suivreSysteme();
 
   const meta = document.querySelector('meta[name="theme-color"]');
 
   if (hexValide(v.accent)) {
+    const n = String(v.accent).replace('#', '');
+    const rgb = [0, 2, 4].map((i) => parseInt(n.slice(i, i + 2), 16)).join(',');
+    r.style.setProperty('--ft-accent', v.accent);
     r.style.setProperty('--accent', v.accent);
     r.style.setProperty('--accent-ink', encre(v.accent));
+    r.style.setProperty('--bs-primary', v.accent);
+    r.style.setProperty('--bs-primary-rgb', rgb);
+    r.style.setProperty('--bs-link-color', v.accent);
+    r.style.setProperty('--bs-link-color-rgb', rgb);
     if (meta) meta.setAttribute('content', v.accent);
   } else {
-    r.style.removeProperty('--accent');
-    r.style.removeProperty('--accent-ink');
+    for (const p of [
+      '--ft-accent',
+      '--accent',
+      '--accent-ink',
+      '--bs-primary',
+      '--bs-primary-rgb',
+      '--bs-link-color',
+      '--bs-link-color-rgb',
+    ]) {
+      r.style.removeProperty(p);
+    }
     if (meta) meta.setAttribute('content', '#C4560B');
   }
 
