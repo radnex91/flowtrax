@@ -368,6 +368,7 @@ const SPECS = {
 
 const FUSEAUX = [
   'UTC',
+  'Africa/Douala',
   'Africa/Maseru',
   'Africa/Johannesburg',
   'Africa/Kinshasa',
