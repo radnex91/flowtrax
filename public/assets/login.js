@@ -37,6 +37,39 @@ if (!isConfigured) {
     if (data.session) verifierEtRediriger();
   });
 
+  const togglePwd = document.getElementById('toggle-pwd');
+  const pwdInput = document.getElementById('password');
+  const eyeIcon = document.getElementById('eye-icon');
+  if (togglePwd && pwdInput && eyeIcon) {
+    togglePwd.addEventListener('click', () => {
+      const isPwd = pwdInput.type === 'password';
+      pwdInput.type = isPwd ? 'text' : 'password';
+      eyeIcon.innerHTML = isPwd
+        ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+        : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    });
+  }
+
+  const btnForgot = document.getElementById('btn-forgot');
+  if (btnForgot) {
+    btnForgot.addEventListener('click', () => {
+      afficher('Les mots de passe sont attribués et réinitialisés par la direction. Rapprochez-vous de votre responsable.', 'i');
+    });
+  }
+
+  const btnGuest = document.getElementById('btn-guest');
+  if (btnGuest) {
+    btnGuest.addEventListener('click', () => {
+      afficher('Connexion invité / test : utilisez « direction » ou « jonas » (mot de passe communiqué par l’administrateur).', 'i');
+    });
+  }
+
+  try {
+    const saved = localStorage.getItem('flowtrax_saved_ident');
+    const identInput = document.getElementById('identifiant');
+    if (saved && identInput) identInput.value = saved;
+  } catch {}
+
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
 
@@ -46,6 +79,13 @@ if (!isConfigured) {
     if (!identifiant || !password) {
       afficher('Saisissez votre identifiant et votre mot de passe.');
       return;
+    }
+
+    const remember = document.getElementById('remember');
+    if (remember && remember.checked) {
+      try { localStorage.setItem('flowtrax_saved_ident', identifiant); } catch {}
+    } else {
+      try { localStorage.removeItem('flowtrax_saved_ident'); } catch {}
     }
 
     btn.disabled = true;

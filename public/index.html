@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Connexion · Départs</title>
+<title>Connexion · Danay Express</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css">
 <link rel="stylesheet" href="assets/app.css">
 <script src="assets/theme-boot.js"></script>
@@ -15,34 +15,134 @@
 </head>
 <body class="page-login">
 
-<header class="top"><div class="wrap">
-  <div class="brand"><img class="logo" src="assets/logo.jpg" alt="Danay Express SARL"><span>Départs</span></div>
-</div></header>
+<div class="login-wrapper">
+  <!-- Décorations courbes orange comme sur la maquette -->
+  <div class="login-decor-tr" aria-hidden="true"></div>
+  <div class="login-decor-bl" aria-hidden="true"></div>
 
-<main class="login-wrap">
-  <section class="board hero-page">
-    <h1>Connexion de l'agence</h1>
-    <p class="lead">À faire une seule fois sur ce téléphone.</p>
-  </section>
+  <div class="login-container">
+    <!-- Colonne Gauche : Vitrine Visuelle Danay Express & Bus -->
+    <aside class="login-showcase">
+      <div class="showcase-bg" style="background-image: url('assets/bus.jpg');"></div>
+      <div class="showcase-overlay"></div>
 
-  <form id="flogin" class="login-card" novalidate>
-    <fieldset>
-      <legend>Votre compte</legend>
-      <label for="identifiant">Identifiant
-        <input id="identifiant" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
-      </label>
-      <label for="password">Mot de passe
-        <input id="password" type="password" autocomplete="current-password" required>
-        <small>Communiqué par la direction.</small>
-      </label>
-    </fieldset>
+      <header class="showcase-header">
+        <div class="brand-badge">
+          <img class="brand-logo" src="assets/logo.jpg" alt="Danay Express">
+          <div class="brand-sep" aria-hidden="true"></div>
+          <div class="brand-text">
+            <span class="brand-name">DANAY EXPRESS</span>
+            <span class="brand-sub">SERVICE LOGISTIQUE</span>
+          </div>
+        </div>
+      </header>
 
-    <div class="msgs" id="lmsgs"></div>
-    <div class="actions"><button class="btn" type="submit" id="lbtn">Se connecter</button></div>
-  </form>
+      <div class="showcase-content">
+        <p class="showcase-slogan">Ensemble, vers de nouveaux horizons</p>
+      </div>
 
-  <p class="hint" style="margin-top:16px">L'agence est déduite de votre compte : plus de code partagé entre collègues.</p>
-</main>
+      <div class="showcase-footer">
+        <div class="feature-item">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+          </div>
+          <div class="feature-text">
+            <b>Sécurité</b>
+            <span>maximale</span>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <div class="feature-text">
+            <b>Rapidité</b>
+            <span>assurée</span>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </div>
+          <div class="feature-text">
+            <b>Des voyages</b>
+            <span>confortables</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Colonne Droite : Formulaire de Connexion -->
+    <main class="login-form-area">
+      <div class="login-card">
+        <div class="card-header-clean">
+          <div class="avatar-circle" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="header-titles">
+            <span class="welcome-text">Bienvenue sur</span>
+            <h1 class="portal-title">Danay Express</h1>
+          </div>
+        </div>
+
+        <p class="portal-desc">Connectez-vous à votre espace pour gérer vos voyages et opérations.</p>
+
+        <form id="flogin" novalidate>
+          <div class="field-group">
+            <label for="identifiant">Identifiant</label>
+            <div class="input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              <input id="identifiant" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Entrez votre identifiant" required>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="password">Mot de passe</label>
+            <div class="input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <input id="password" type="password" autocomplete="current-password" placeholder="Entrez votre mot de passe" required>
+              <button type="button" class="btn-toggle-pwd" id="toggle-pwd" title="Afficher ou masquer le mot de passe" aria-label="Afficher ou masquer le mot de passe">
+                <svg id="eye-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="login-row-options">
+            <label class="check-remember">
+              <input type="checkbox" id="remember" checked>
+              <span>Se souvenir de moi</span>
+            </label>
+            <button type="button" class="link-forgot" id="btn-forgot">Mot de passe oublié ?</button>
+          </div>
+
+          <div class="msgs" id="lmsgs"></div>
+
+          <button class="btn btn-primary w-100 btn-submit" type="submit" id="lbtn">
+            <span>Se connecter</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+
+          <div class="or-separator"><span>ou</span></div>
+
+          <button type="button" class="btn btn-outline-secondary w-100 btn-guest" id="btn-guest">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Accès invité / Guide</span>
+          </button>
+        </form>
+
+        <footer class="login-footer">
+          <p>© 2026 Danay Express SARL. Tous droits réservés. <span class="version-tag">v1.0.0</span></p>
+        </footer>
+      </div>
+    </main>
+  </div>
+</div>
 
 <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script type="module" src="assets/login.js"></script>
