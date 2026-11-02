@@ -515,13 +515,13 @@ body.page-login{
   position:relative;
   z-index:1;
   width:100%;
-  max-width:1120px;
-  min-height:620px;
+  max-width:1100px;
+  min-height:590px;
   display:grid;
-  grid-template-columns:1.15fr .95fr;
+  grid-template-columns:1.05fr 1fr;
   border-radius:1.5rem;
   overflow:hidden;
-  box-shadow:0 28px 65px -15px rgba(24,16,10,.5);
+  box-shadow:0 24px 60px -15px rgba(24,16,10,.35);
   border:1px solid var(--bs-border-color);
   background:var(--bs-body-bg);
 }
@@ -532,27 +532,29 @@ body.page-login{
   display:flex;
   flex-direction:column;
   justify-content:space-between;
-  padding:clamp(1.5rem, 3vw, 2.5rem);
+  padding:clamp(1.25rem, 2.5vw, 2.25rem);
   overflow:hidden;
-  min-height:380px;
+  min-height:480px;
   color:#fff;
+  background:#18120D;
 }
 .showcase-bg{
   position:absolute;
   inset:0;
   background-size:cover;
-  background-position:center;
+  background-position:left center;
   z-index:0;
   transition:transform .8s ease;
 }
 .login-showcase:hover .showcase-bg{
-  transform:scale(1.03);
+  transform:scale(1.02);
 }
 .showcase-overlay{
   position:absolute;
   inset:0;
-  background:linear-gradient(180deg, rgba(18,14,10,.72) 0%, rgba(18,14,10,.3) 40%, rgba(18,14,10,.88) 100%);
+  background:linear-gradient(180deg, rgba(18,14,10,.55) 0%, rgba(18,14,10,.08) 35%, rgba(18,14,10,.22) 65%, rgba(18,14,10,.82) 100%);
   z-index:1;
+  pointer-events:none;
 }
 .showcase-header,
 .showcase-content,
@@ -612,33 +614,42 @@ body.page-login{
 .showcase-slogan{
   font-family:"Barlow",sans-serif;
   font-style:italic;
-  font-weight:600;
-  font-size:clamp(1.35rem, 2.5vw, 1.85rem);
-  line-height:1.25;
+  font-weight:700;
+  font-size:clamp(1.2rem, 1.9vw, 1.55rem);
+  line-height:1.3;
   color:#FFFFFF;
-  text-shadow:0 2px 14px rgba(0,0,0,.7);
-  max-width:380px;
-  margin:2rem 0;
+  margin:1.5rem 0;
+  display:inline-block;
+  padding:.55rem 1rem;
+  background:rgba(18,14,10,.6);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  border-radius:.75rem;
+  border-left:4px solid #ED5D0B;
+  box-shadow:0 6px 18px rgba(0,0,0,.3);
+  text-shadow:0 2px 6px rgba(0,0,0,.5);
 }
 
 .showcase-footer{
   display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));
-  gap:.75rem;
-  background:rgba(18,14,10,.75);
+  grid-template-columns:repeat(3, 1fr);
+  gap:.6rem;
+  background:rgba(18,14,10,.7);
   backdrop-filter:blur(10px);
-  padding:.75rem 1rem;
-  border-radius:1rem;
-  border:1px solid rgba(255,255,255,.14);
+  -webkit-backdrop-filter:blur(10px);
+  padding:.65rem .85rem;
+  border-radius:.95rem;
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
 }
 .feature-item{
   display:flex;
   align-items:center;
-  gap:.6rem;
+  gap:.55rem;
 }
 .feature-icon{
-  width:32px;
-  height:32px;
+  width:28px;
+  height:28px;
   border-radius:50%;
   background:linear-gradient(135deg, #F26522, #C4560B);
   color:#fff;
@@ -646,20 +657,22 @@ body.page-login{
   align-items:center;
   justify-content:center;
   flex-shrink:0;
-  box-shadow:0 4px 10px rgba(242,101,34,.35);
+  box-shadow:0 3px 8px rgba(242,101,34,.35);
 }
 .feature-text{
   display:flex;
   flex-direction:column;
   line-height:1.15;
-  font-size:.78rem;
+  font-size:.74rem;
 }
 .feature-text b{
   color:#fff;
-  font-size:.82rem;
+  font-size:.78rem;
+  white-space:nowrap;
 }
 .feature-text span{
-  color:rgba(255,255,255,.75);
+  color:rgba(255,255,255,.8);
+  white-space:nowrap;
 }
 
 /* Colonne droite : formulaire */
@@ -741,7 +754,11 @@ body.page-login .login-card{
 }
 .input-wrap .input-icon{
   position:absolute;
-  left:.95rem;
+  left:1.05rem;
+  top:50%;
+  transform:translateY(-50%);
+  width:18px;
+  height:18px;
   color:var(--bs-secondary-color);
   pointer-events:none;
   z-index:3;
@@ -749,11 +766,13 @@ body.page-login .login-card{
   align-items:center;
   justify-content:center;
 }
+.page-login .input-wrap input,
+.login-form-area .input-wrap input,
 .input-wrap input{
   width:100%;
   height:48px;
-  padding-left:2.75rem;
-  padding-right:2.75rem;
+  padding-left:3.1rem !important;
+  padding-right:3.1rem !important;
   font-size:.95rem;
   font-weight:500;
   border-radius:.65rem;
@@ -762,6 +781,8 @@ body.page-login .login-card{
   color:var(--bs-body-color);
   transition:border-color .15s,box-shadow .15s,background-color .15s;
 }
+.page-login .input-wrap input:focus,
+.login-form-area .input-wrap input:focus,
 .input-wrap input:focus{
   border-color:#ED5D0B;
   box-shadow:0 0 0 4px rgba(237,93,11,.18);
