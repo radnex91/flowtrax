@@ -48,7 +48,7 @@
   // ici, avant le premier rendu, pour éviter le clignotement clair → sombre.
   var sombre =
     v.mode === 'dark' ||
-    (v.mode !== 'light' &&
+    (v.mode === 'auto' &&
       !!window.matchMedia &&
       window.matchMedia('(prefers-color-scheme: dark)').matches);
   r.setAttribute('data-bs-theme', sombre ? 'dark' : 'light');

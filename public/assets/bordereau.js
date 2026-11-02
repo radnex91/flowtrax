@@ -30,9 +30,19 @@ async function init() {
   $('who').textContent = ctx.profile.nom;
   $('logout').hidden = false;
   $('logout').addEventListener('click', async () => {
-    await sb.auth.signOut();
-    location.replace('index.html');
-  });
+  try {
+    await sb.auth.signOut({ scope: 'local' });
+  } catch {}
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('sb-') || k.includes('auth-token') || k.includes('supabase'))) {
+        localStorage.removeItem(k);
+      }
+    }
+  } catch {}
+  location.replace('index.html?deconnexion=1');
+});
 
   if (!uuid) {
     $('boot').textContent = 'Aucun bordereau demandé : ouvrez-le depuis un départ.';

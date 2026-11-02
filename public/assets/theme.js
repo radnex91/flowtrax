@@ -139,7 +139,7 @@ export async function chargerTheme(client) {
 
   if (error || !Array.isArray(data)) return cache() || null;
 
-  const v = { accent: '', mode: 'auto', logo: '' };
+  const v = { accent: '', mode: 'light', logo: '' };
   for (const ligne of data) {
     if (ligne.key === 'theme_accent') v.accent = ligne.value || '';
     else if (ligne.key === 'theme_mode') v.mode = ligne.value || 'auto';

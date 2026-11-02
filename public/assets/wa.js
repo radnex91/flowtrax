@@ -1,7 +1,6 @@
 /**
- * Format des messages WhatsApp — repris À L'IDENTIQUE de l'application
- * « Départs Danay Express ». Toute modification ici change ce que lisent
- * les groupes de planification : à ne toucher qu'en connaissance de cause.
+ * Format des messages WhatsApp — Danay Express SARL.
+ * Mise en forme professionnelle pour les groupes de planification opérationnelle.
  */
 
 export const PROGRAMMES = {
@@ -34,6 +33,7 @@ export function libelleAxe(prov, ligne, dest) {
 }
 
 /**
+ * Construit le message WhatsApp professionnel pour un départ.
  * @param {object} d  saisie : agence, axe, provenance, destination, bordereau,
  *                    hDep, effArr, effComp, chauffeur, convoyeur, chefPiste
  * @param {object} r  valeurs calculées : programme, immat, places, dispo, total,
@@ -41,53 +41,74 @@ export function libelleAxe(prov, ligne, dest) {
  * @param {boolean} corr  message de correction (modification d'un départ existant)
  */
 export function waText(d, r, corr) {
+  const titre = (corr ? '🚨 *CORRECTION · ' : '🚌 *') +
+    'DÉPART ' + String(d.agence).toUpperCase() +
+    ' · ' + String(r.programme).toUpperCase() + '*';
+
   const lignes = [
-    (corr ? '*CORRECTION · ' : '*') +
-      'DÉPART ' + String(d.agence).toUpperCase() +
-      ' · ' + String(r.programme).toUpperCase() + '*',
+    titre,
+    '━━━━━━━━━━━━━━━━━━━━',
   ];
 
-  if (corr) lignes.push('_Ce message remplace le précédent pour ce départ._');
+  if (corr) {
+    lignes.push('⚠️ _Ce message remplace et annule le précédent pour ce départ._', '━━━━━━━━━━━━━━━━━━━━');
+  }
+
+  const axeAffiche = r.axePublie || libelleAxe(d.provenance, d.axe, d.destination);
 
   lignes.push(
-    'Axe : ' + (r.axePublie || libelleAxe(d.provenance, d.axe, d.destination)),
-    'Axe : ' + d.axe,
-    'Véhicule : ' + r.immat + ' (' + r.places + ' places)',
-    'Bordereau : ' + d.bordereau,
-    'Provenance : ' + d.provenance,
-    'Destination finale : ' + d.destination,
-    'Arrivée : ' + (r.hArr || '—') + ' · Départ : ' + d.hDep,
-    'Effectif à l\'arrivée : ' + d.effArr + ' · Places disponibles : ' + r.dispo,
-    'Effectif complété : ' + d.effComp + ' · Total à bord : ' + r.total,
-    'Taux de remplissage agence : *' + pct(r.taux) + '*'
+    '📍 *ITINÉRAIRE*',
+    '• Axe : ' + axeAffiche,
+    '• Ligne : ' + d.axe,
+    '• Provenance : ' + d.provenance,
+    '• Destination : ' + d.destination,
+    '',
+    '🚍 *VÉHICULE & BORDEREAU*',
+    '• Véhicule : ' + r.immat + ' (' + r.places + ' places)',
+    '• Bordereau : N° ' + d.bordereau,
+    '',
+    '🕒 *HORAIRES*',
+    '• Arrivée : ' + (r.hArr || '—') + ' · Départ : ' + d.hDep,
+    '',
+    '👥 *EFFECTIFS & REMPLISSAGE*',
+    '• Effectif arrivée : ' + d.effArr + ' (places dispo : ' + r.dispo + ')',
+    '• Effectif complété : ' + d.effComp + ' · Total à bord : ' + r.total,
+    '• *Taux de remplissage agence : ' + pct(r.taux) + '*'
   );
 
   if (r.passants && r.passants.length) {
-    lignes.push('Passants : ' + r.passants.map((p) => p.agence + ' ' + p.n).join(' · '));
+    lignes.push('• Passants : ' + r.passants.map((p) => p.agence + ' (' + p.n + ')').join(' · '));
   }
 
   lignes.push(
-    'Chauffeur : ' + d.chauffeur,
-    'Convoyeur : ' + d.convoyeur,
-    'Chef de piste : ' + d.chefPiste
+    '',
+    '👨‍✈️ *ÉQUIPAGE*',
+    '• Chauffeur : ' + d.chauffeur,
+    '• Convoyeur : ' + d.convoyeur,
+    '• Chef de piste : ' + d.chefPiste,
+    '━━━━━━━━━━━━━━━━━━━━',
+    '✨ _Danay Express SARL — Ensemble, vers de nouveaux horizons_'
   );
 
   return lignes.join('\n');
 }
 
 /**
+ * Construit le message WhatsApp d'annulation.
  * @param {object} x  départ annulé : immat, bordereau, destination, hDep, programme (libellé)
  * @param {string} agence  nom de l'agence qui annule
  */
 export function waAnnul(x, agence) {
   return [
-    '*ANNULATION · DÉPART ' + String(agence).toUpperCase() + '*',
-    'Véhicule : ' + x.immat,
-    'Bordereau : ' + x.bordereau,
-    'Destination finale : ' + x.destination,
-    'Heure de départ : ' + x.hDep,
-    x.programme ? 'Programme : ' + x.programme : '',
-    '_Ce départ est annulé : ne pas tenir compte du message précédent._',
+    '🚫 *ANNULATION · DÉPART ' + String(agence).toUpperCase() + '*',
+    '━━━━━━━━━━━━━━━━━━━━',
+    '🚍 Véhicule : ' + x.immat,
+    '🔖 Bordereau : N° ' + x.bordereau,
+    '📍 Destination : ' + x.destination,
+    '🕒 Heure de départ : ' + x.hDep,
+    x.programme ? '📋 Programme : ' + x.programme : '',
+    '━━━━━━━━━━━━━━━━━━━━',
+    '⚠️ _Ce départ est annulé : ne pas tenir compte du message précédent._',
   ]
     .filter(Boolean)
     .join('\n');

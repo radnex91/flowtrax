@@ -33,9 +33,25 @@ if (!isConfigured) {
   // clés d'apparence, pour que cet écran porte le logo et les couleurs choisis
   chargerTheme(sb);
 
-  sb.auth.getSession().then(({ data }) => {
-    if (data.session) verifierEtRediriger();
-  });
+  const urlParams = new URLSearchParams(location.search);
+  const estDeconnexion = urlParams.has('deconnexion') || urlParams.has('logout');
+
+  if (estDeconnexion) {
+    try { sb.auth.signOut({ scope: 'local' }).catch(() => {}); } catch {}
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('sb-') || k.includes('auth-token') || k.includes('supabase'))) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch {}
+    try { history.replaceState({}, '', location.pathname); } catch {}
+  } else {
+    sb.auth.getSession().then(({ data }) => {
+      if (data && data.session) verifierEtRediriger();
+    });
+  }
 
   const togglePwd = document.getElementById('toggle-pwd');
   const pwdInput = document.getElementById('password');
