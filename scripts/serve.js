@@ -51,3 +51,4 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`Serveur FlowTrax actif sur : http://localhost:${PORT}`);
 });
+
