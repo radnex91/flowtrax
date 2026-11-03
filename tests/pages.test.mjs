@@ -287,6 +287,29 @@ test('le service worker met Bootstrap en cache et change de version', () => {
   assert.match(sw, /'\.\/vendor\/bootstrap\/bootstrap\.bundle\.min\.js'/);
 });
 
+test('chaque écran attend le chargement avec un spinner', () => {
+  const pages = [
+    'public/depart.html',
+    'public/dashboard.html',
+    'public/admin.html',
+    'public/rapports.html',
+    'public/bordereau.html',
+  ];
+
+  for (const page of pages) {
+    const html = lire(page);
+    const i = html.indexOf('<div id="boot"');
+    assert.ok(i > 0, `${page} : bloc de chargement #boot introuvable`);
+    const j = html.indexOf('<section', i);
+    const bloc = html.slice(i, j > i ? j : i + 260);
+
+    assert.match(bloc, /class="loading" role="status"/, `${page} : le chargement n’est pas annoncé`);
+    assert.match(bloc, /class="spinner-border/, `${page} : aucun spinner`);
+    assert.match(bloc, /class="visually-hidden"/, `${page} : libellé accessible manquant`);
+    assert.doesNotMatch(bloc, /class="loading"[^>]*>Chargement/, `${page} : le texte de chargement est resté`);
+  }
+});
+
 test('la suite et la fin ne sont proposées qu’après un début de programme', () => {
   const js = lire('public/assets/depart.js');
   const html = lire('public/depart.html');

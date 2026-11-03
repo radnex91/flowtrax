@@ -23,7 +23,10 @@
   <button class="btn small ghost" type="button" id="logout" hidden>Se déconnecter</button>
 </div></header>
 
-<div id="boot" class="loading">Chargement…</div>
+<div id="boot" class="loading" role="status">
+  <div class="spinner-border text-primary" aria-hidden="true"></div>
+  <span class="visually-hidden">Chargement…</span>
+</div>
 
 <section id="app" hidden>
   <div class="wrap wide">
