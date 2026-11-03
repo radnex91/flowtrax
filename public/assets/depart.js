@@ -515,8 +515,25 @@ function actifs() {
   return MINE.filter((x) => x.statut !== 'ANNULE' && (!EDIT || x.id !== EDIT.id));
 }
 
+// La suite et la fin supposent qu'un début de programme ait déjà été déclaré
+// aujourd'hui. Un départ déjà enregistré comme suite ou fin reste modifiable
+// même si son début a été annulé entre-temps.
+function progDispo(v) {
+  if (EDIT && EDIT.programme === v) return true;
+  if (v !== 'SUITE' && v !== 'FIN') return true;
+  return actifs().some((x) => x.programme === 'DEBUT' || x.programme === 'DEBUT_FIN');
+}
+
+function majProgDispo() {
+  ['SUITE', 'FIN'].forEach((v) => {
+    document.querySelector('input[name="prog"][value="' + v + '"]').disabled = !progDispo(v);
+  });
+  if (!progDispo(prog())) setProg('DEBUT');
+}
+
 function proposeProg() {
-  if (!progManuel && !EDIT) setProg(actifs().length ? 'SUITE' : 'DEBUT');
+  majProgDispo();
+  if (!progManuel && !EDIT) setProg(progDispo('SUITE') ? 'SUITE' : 'DEBUT');
   check();
 }
 
@@ -537,6 +554,9 @@ function collect() {
   const missing = [];
 
   if (!prog()) missing.push('le programme (début, suite ou fin)');
+  if (!progDispo(prog())) {
+    missing.push(prog() === 'FIN' ? 'un début de programme avant la fin' : 'un début de programme avant la suite');
+  }
 
   const need = {
     axe: 'l\'axe',
@@ -823,6 +843,7 @@ function startEdit(x) {
 
   progManuel = true;
   setProg(x.programme);
+  majProgDispo();
 
   $('axe').value = String(x.axe_id);
   onAxe();

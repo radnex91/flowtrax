@@ -286,3 +286,41 @@ test('le service worker met Bootstrap en cache et change de version', () => {
   assert.match(sw, /'\.\/vendor\/bootstrap\/bootstrap\.min\.css'/);
   assert.match(sw, /'\.\/vendor\/bootstrap\/bootstrap\.bundle\.min\.js'/);
 });
+
+test('la suite et la fin ne sont proposées qu’après un début de programme', () => {
+  const js = lire('public/assets/depart.js');
+  const html = lire('public/depart.html');
+
+  assert.match(html, /id="prog-1" value="SUITE"/, 'le bouton Suite a disparu du sélecteur');
+  assert.match(html, /id="prog-2" value="FIN"/, 'le bouton Fin a disparu du sélecteur');
+
+  // la règle est extraite puis exécutée avec un faux état : les cas de contrôle
+  // (suite ou fin sans début) doivent répondre non, sinon le test ne voit pas la faute
+  const debut = js.indexOf('function progDispo');
+  const fin = js.indexOf('function majProgDispo');
+  assert.ok(debut > 0 && fin > debut, 'progDispo introuvable');
+  const source = js.slice(debut, fin) + '\nreturn progDispo;';
+  const dispo = (EDIT, actifs) => new Function('EDIT', 'actifs', source)(EDIT, actifs);
+
+  const aucun = () => [];
+  const suiteSeule = () => [{ programme: 'SUITE' }];
+
+  assert.equal(dispo(null, aucun)('SUITE'), false, 'sans aucun départ, la suite est possible');
+  assert.equal(dispo(null, aucun)('FIN'), false, 'sans aucun départ, la fin est possible');
+  assert.equal(dispo(null, suiteSeule)('SUITE'), false, 'une suite sans début ouvre la suite');
+  assert.equal(dispo(null, suiteSeule)('FIN'), false, 'une suite sans début ouvre la fin');
+  assert.equal(dispo(null, () => [{ programme: 'DEBUT' }])('SUITE'), true, 'un début doit ouvrir la suite');
+  assert.equal(dispo(null, () => [{ programme: 'DEBUT' }])('FIN'), true, 'un début doit ouvrir la fin');
+  assert.equal(dispo(null, () => [{ programme: 'DEBUT_FIN' }])('FIN'), true, 'début et fin ouvrent aussi la fin');
+  assert.equal(dispo(null, aucun)('DEBUT'), true, 'le début reste toujours possible');
+  assert.equal(dispo(null, aucun)('DEBUT_FIN'), true, 'début et fin reste toujours possible');
+  assert.equal(dispo({ programme: 'FIN' }, aucun)('FIN'), true, 'une fin en cours de modification doit rester modifiable');
+  assert.equal(dispo({ programme: 'FIN' }, aucun)('SUITE'), false, 'modifier une fin ne doit pas ouvrir la suite');
+
+  // la règle doit être branchée sur les boutons, pas seulement écrite
+  assert.match(js, /\['SUITE', 'FIN'\]\.forEach/, 'le bouton Fin n’est pas mis à jour');
+  assert.match(js, /\.disabled = !progDispo\(v\)/, 'les boutons Suite et Fin ne sont pas désactivés');
+  assert.match(js, /function proposeProg\(\) \{\s*majProgDispo\(\)/, 'proposeProg ne met pas les boutons à jour');
+  assert.match(js, /setProg\(progDispo\('SUITE'\) \? 'SUITE' : 'DEBUT'\)/, 'le programme proposé ignore la règle');
+  assert.match(js, /un début de programme avant la fin/, 'la garde d’envoi ne couvre pas la fin');
+});

@@ -449,6 +449,8 @@ pre.wa{
   transition:all .18s ease;
 }
 .seg label:hover{color:var(--bs-body-color)}
+.seg input:disabled+label{opacity:.45;cursor:not-allowed}
+.seg input:disabled+label:hover{color:var(--bs-secondary-color)}
 .seg input:checked+label{
   background:linear-gradient(135deg, #F26522, #D64F06);color:#fff;
   box-shadow:0 4px 14px rgba(242,101,34,.35);
@@ -531,7 +533,7 @@ body.page-login{
   position:relative;
   display:flex;
   flex-direction:column;
-  justify-content:space-between;
+  justify-content:flex-start;
   padding:clamp(1.25rem, 2.5vw, 2.25rem);
   overflow:hidden;
   min-height:480px;
@@ -634,6 +636,7 @@ body.page-login{
   display:grid;
   grid-template-columns:repeat(3, 1fr);
   gap:.6rem;
+  margin-top:auto;
   background:rgba(18,14,10,.7);
   backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);
