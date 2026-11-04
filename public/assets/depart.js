@@ -568,6 +568,14 @@ POSTE.forEach(([id]) => {
 
 document.querySelectorAll('input[name="prog"]').forEach((x) => {
   x.addEventListener('change', () => {
+    // sans début de journée, une suite ou une fin ne doit pas s'ouvrir par un
+    // clic forcé (libellé, état restauré, script) : le choix revient au début
+    if (!progDispo(x.value)) {
+      setProg('DEBUT');
+      majProgDispo();
+      check();
+      return;
+    }
     progManuel = true;
     heriterPersonnel();
     check();
@@ -1006,6 +1014,10 @@ async function loadMine() {
 
   if (error) {
     $('mine').innerHTML = '<div class="empty">Liste indisponible pour le moment.</div>';
+    // la liste fait foi pour la suite et la fin : sans elle, on ne garde pas un
+    // état supposé et les deux programmes restent fermés
+    MINE = [];
+    proposeProg();
     return;
   }
 

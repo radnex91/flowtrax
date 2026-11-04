@@ -356,6 +356,10 @@ test('la suite et la fin ne sont proposées qu’après un début de programme',
   assert.match(html, /id="prog-1" value="SUITE"/, 'le bouton Suite a disparu du sélecteur');
   assert.match(html, /id="prog-2" value="FIN"/, 'le bouton Fin a disparu du sélecteur');
 
+  // fermés dès le HTML : aucun instant, avant le script, où ils seraient ouverts
+  assert.match(html, /id="prog-1" value="SUITE" disabled/, 'Suite s’ouvre avant même le chargement');
+  assert.match(html, /id="prog-2" value="FIN" disabled/, 'Fin s’ouvre avant même le chargement');
+
   // la règle est extraite puis exécutée avec un faux état : les cas de contrôle
   // (suite ou fin sans début) doivent répondre non, sinon le test ne voit pas la faute
   const debut = js.indexOf('function progDispo');
@@ -385,6 +389,11 @@ test('la suite et la fin ne sont proposées qu’après un début de programme',
   assert.match(js, /function proposeProg\(\) \{\s*majProgDispo\(\)/, 'proposeProg ne met pas les boutons à jour');
   assert.match(js, /setProg\(progDispo\('SUITE'\) \? 'SUITE' : 'DEBUT'\)/, 'le programme proposé ignore la règle');
   assert.match(js, /un début de programme avant la fin/, 'la garde d’envoi ne couvre pas la fin');
+
+  // un clic forcé sur la suite ou la fin sans début doit revenir au début
+  assert.match(js, /if \(!progDispo\(x\.value\)\) \{\s*setProg\('DEBUT'\)/, 'le changement de programme ne vérifie pas la règle');
+  // une liste du jour qui ne répond pas ne doit pas laisser les deux ouverts
+  assert.match(js, /Liste indisponible[\s\S]{0,400}MINE = \[\];\s*proposeProg\(\);/, 'la liste en erreur laisse Suite et Fin ouvertes');
 });
 
 test('aucun contrôle du formulaire ne masque la méthode reset', () => {
