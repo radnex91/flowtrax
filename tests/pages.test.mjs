@@ -164,14 +164,23 @@ test("l'apparence s'écrit depuis Administration et se lit jusqu'au bordereau", 
   assert.match(lire('public/assets/login.js'), /chargerTheme\(sb\)/, "l'écran de connexion ne lit pas l'apparence");
 });
 
-test('le personnel en poste est facultatif et se déclare à tout moment', () => {
+test('le personnel en poste est facultatif, replié, et se déclare à tout moment', () => {
   // le bloc n'ouvrait que sur un début de programme : un nom appris après coup
-  // n'avait plus d'endroit où se noter, et la règle se lisait comme une obligation
+  // n'avait plus d'endroit où se noter, et la règle se lisait comme une obligation.
+  // Il est maintenant replié au repos pour ne pas encombrer la saisie courante.
   const html = lire('public/depart.html');
-  const debut = html.indexOf('<fieldset id="fs-poste"');
-  const bloc = html.slice(debut, html.indexOf('</fieldset>', debut));
-  assert.doesNotMatch(bloc, /\bhidden\b/, 'le bloc doit rester ouvert, quel que soit le programme');
-  assert.match(bloc, /Facultatif/, 'le caractère facultatif doit être dit à l’écran');
+  const debut = html.indexOf('<details class="opt" id="fs-poste">');
+  assert.ok(debut >= 0, 'le personnel en poste n’est plus un bloc repliable');
+  const bloc = html.slice(debut, html.indexOf('</details>', debut));
+  assert.match(bloc, /<summary>Personnel en poste <span class="opt-tag">facultatif<\/span><\/summary>/, 'le titre replié doit dire le bloc et son caractère facultatif');
+  assert.doesNotMatch(bloc, /<details[^>]*\bopen\b/, 'le bloc doit rester replié tant qu’on ne l’ouvre pas');
+  assert.match(bloc, /<div class="opt-body">/, 'le contenu replié est absent');
+
+  const css = lire('public/assets/app.css');
+  assert.match(css, /details\.opt>summary\{[^}]*list-style:none/, 'la puce native s’ajouterait au chevron');
+  assert.match(css, /details\.opt>summary::-webkit-details-marker\{display:none\}/, 'la flèche native doublerait le chevron');
+  assert.match(css, /details\.opt\[open\]>summary::after/, 'rien n’indique visuellement l’ouverture');
+  assert.match(css, /details\.opt>\.opt-body\{[^}]*display:grid/, 'le contenu replié ne retrouve pas la mise en page des blocs');
 
   const js = lire('public/assets/depart.js');
   assert.doesNotMatch(js, /personnelVisible|majPersonnel/, 'plus de règle qui ouvre ou ferme le bloc selon le programme');
