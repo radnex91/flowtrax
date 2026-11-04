@@ -204,6 +204,22 @@ test('le personnel en poste est facultatif, replié, et se déclare à tout mome
   }
 });
 
+test('une agence ne choisit que les lignes qui partent de chez elle', () => {
+  // la liste proposait aussi les lignes où l'agence n'est qu'un arrêt : elle
+  // déclarait alors un départ dont la provenance était une autre agence
+  const js = lire('public/assets/depart.js');
+  const debut = js.indexOf('function buildAxes');
+  const bloc = js.slice(debut, js.indexOf('\n}', debut));
+  assert.match(bloc, /findIndex\(\(x\) => x\.id === AGENCE_ID\)/, 'l’agence doit être cherchée dans l’itinéraire');
+  assert.match(bloc, /return i === 0;/, 'une agence simple arrêt ne doit plus voir la ligne');
+  assert.doesNotMatch(bloc, /i < a\.agences\.length - 1/, 'l’ancienne règle laissait passer les arrêts intermédiaires');
+
+  // un départ déjà déclaré sous l'ancienne règle reste modifiable, sinon sa
+  // ligne absente de la liste rendrait la modification impossible
+  assert.match(js, /const connue = \[\.\.\.\$\('axe'\)\.options\]\.some/, 'la ligne du départ modifié doit être cherchée dans la liste');
+  assert.match(js, /insertAdjacentHTML\(\s*'afterbegin',/, 'la ligne manquante doit être ajoutée à la liste');
+});
+
 test('déclarer une suite reprend le personnel du début de journée', () => {
   // ressaisir cinq noms à chaque départ ferait perdre ceux du début : les
   // reprendre quand les champs sont vides garde la journée cohérente

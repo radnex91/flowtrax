@@ -225,7 +225,9 @@ function listerVehicules(immatEnPlus) {
 function buildAxes() {
   const list = AXES.filter((a) => {
     const i = a.agences.findIndex((x) => x.id === AGENCE_ID);
-    return i >= 0 && i < a.agences.length - 1;
+    // une ligne appartient à l'agence qui la fait partir : passer par elle en
+    // cours de route ne donne pas le droit de la choisir
+    return i === 0;
   }).map((a) => ({ value: String(a.id), label: a.nom }));
 
   opts($('axe'), list, list.length ? 'Choisir l\'axe…' : 'Aucun axe au départ de cette agence');
@@ -878,6 +880,17 @@ function startEdit(x) {
   $('done').hidden = true;
   $('f').hidden = false;
   $('msgs').innerHTML = '';
+
+  // un départ déjà déclaré sur une ligne qui ne part pas d'ici (règle
+  // précédente) doit rester modifiable : sa ligne revient dans la liste
+  const connue = [...$('axe').options].some((o) => o.value === String(x.axe_id));
+  if (!connue) {
+    $('axe').insertAdjacentHTML(
+      'afterbegin',
+      '<option value="' + x.axe_id + '">' + esc(x.axe) + '</option>'
+    );
+    $('axe').disabled = false;
+  }
 
   progManuel = true;
   setProg(x.programme);
