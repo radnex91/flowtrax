@@ -497,18 +497,6 @@ function setProg(v) {
   document.querySelectorAll('input[name="prog"]').forEach((x) => {
     x.checked = x.value === v;
   });
-  majPersonnel();
-}
-
-// Le personnel en poste ne se note qu'une fois, à l'ouverture de la journée :
-// les autres départs de la journée partent avec les mêmes personnes.
-function personnelVisible() {
-  const p = prog();
-  return p === 'DEBUT' || p === 'DEBUT_FIN';
-}
-
-function majPersonnel() {
-  $('fs-poste').hidden = !personnelVisible();
 }
 
 function actifs() {
@@ -540,7 +528,6 @@ function proposeProg() {
 document.querySelectorAll('input[name="prog"]').forEach((x) => {
   x.addEventListener('change', () => {
     progManuel = true;
-    majPersonnel();
     check();
   });
 });
@@ -614,16 +601,14 @@ function collect() {
     chauffeur: $('chauffeur').value.trim(),
     convoyeur: $('convoyeur').value.trim(),
     chefPiste: $('chefpiste').value.trim(),
-    // hors début de programme, le bloc est fermé : rien de saisi n'est envoyé
-    poste: personnelVisible()
-      ? {
-          guichetier: $('guichetier').value.trim(),
-          chefAgence: $('chef-agence').value.trim(),
-          chefPistePoste: $('chef-piste-poste').value.trim(),
-          porteurAccueil: $('porteur-accueil').value.trim(),
-          chefPisteLogistique: $('chef-piste-logistique').value.trim(),
-        }
-      : null,
+    // facultatif et indépendant du programme : les noms laissés vides partent à null
+    poste: {
+      guichetier: $('guichetier').value.trim(),
+      chefAgence: $('chef-agence').value.trim(),
+      chefPistePoste: $('chef-piste-poste').value.trim(),
+      porteurAccueil: $('porteur-accueil').value.trim(),
+      chefPisteLogistique: $('chef-piste-logistique').value.trim(),
+    },
   };
 }
 

@@ -164,20 +164,19 @@ test("l'apparence s'écrit depuis Administration et se lit jusqu'au bordereau", 
   assert.match(lire('public/assets/login.js'), /chargerTheme\(sb\)/, "l'écran de connexion ne lit pas l'apparence");
 });
 
-test('le personnel en poste ne s’ouvre qu’au début de programme et part avec le départ', () => {
-  // le bloc est fermé dans la page : sans la règle il resterait ouvert sur une
-  // suite de programme, où plus personne ne le remplit
+test('le personnel en poste est facultatif et se déclare à tout moment', () => {
+  // le bloc n'ouvrait que sur un début de programme : un nom appris après coup
+  // n'avait plus d'endroit où se noter, et la règle se lisait comme une obligation
   const html = lire('public/depart.html');
-  assert.match(html, /<fieldset id="fs-poste" hidden>/, 'le bloc doit être fermé au chargement');
+  const debut = html.indexOf('<fieldset id="fs-poste"');
+  const bloc = html.slice(debut, html.indexOf('</fieldset>', debut));
+  assert.doesNotMatch(bloc, /\bhidden\b/, 'le bloc doit rester ouvert, quel que soit le programme');
+  assert.match(bloc, /Facultatif/, 'le caractère facultatif doit être dit à l’écran');
 
   const js = lire('public/assets/depart.js');
-  assert.match(js, /\$\('fs-poste'\)\.hidden = !personnelVisible\(\)/, 'aucune règle n’ouvre le bloc');
-
-  const i = js.indexOf('function personnelVisible');
-  assert.ok(i > 0, 'personnelVisible absente');
-  const regle = js.slice(i, js.indexOf('}', i));
-  assert.match(regle, /'DEBUT'/, 'le début de programme doit ouvrir le bloc');
-  assert.match(regle, /'DEBUT_FIN'/, 'début et fin ouvrent aussi la journée');
+  assert.doesNotMatch(js, /personnelVisible|majPersonnel/, 'plus de règle qui ouvre ou ferme le bloc selon le programme');
+  assert.doesNotMatch(js, /poste: personnelVisible/, 'l’envoi du personnel ne doit plus dépendre du programme');
+  assert.match(js, /poste: \{/, 'le personnel doit partir avec chaque départ');
 
   // le champ doit être lu à l'envoi **et** atterrir dans l'objet envoyé à la
   // base : un champ affiché mais oublié du payload se perd sans rien dire
