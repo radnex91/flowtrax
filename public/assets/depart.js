@@ -44,6 +44,15 @@ let TODAY = null;
 let EDIT = null;
 let busy = false;
 let progManuel = false;
+let posteManuel = false;
+
+const POSTE = [
+  ['guichetier', 'guichetier'],
+  ['chef-agence', 'chef_agence'],
+  ['chef-piste-poste', 'chef_piste_poste'],
+  ['porteur-accueil', 'porteur_accueil'],
+  ['chef-piste-logistique', 'chef_piste_logistique'],
+];
 
 function toast(t) {
   const el = $('toast');
@@ -268,6 +277,7 @@ $('agence').addEventListener('change', () => {
   $('f').reset();
   $('msgs').innerHTML = '';
   progManuel = false;
+  posteManuel = false;
   $('done').hidden = true;
   $('f').hidden = false;
 
@@ -522,12 +532,44 @@ function majProgDispo() {
 function proposeProg() {
   majProgDispo();
   if (!progManuel && !EDIT) setProg(progDispo('SUITE') ? 'SUITE' : 'DEBUT');
+  heriterPersonnel();
   check();
 }
+
+// Le personnel du jour se note là où on le connaît : déclarer une suite ou une
+// fin sans le ressaisir reprend les noms portés par le début de journée.
+function posteDuJour() {
+  return (
+    MINE.filter(
+      (x) =>
+        x.statut !== 'ANNULE' &&
+        (x.programme === 'DEBUT' || x.programme === 'DEBUT_FIN') &&
+        (!EDIT || x.id !== EDIT.id)
+    ).pop() || null
+  );
+}
+
+// Une saisie manuelle l'emporte : on ne réécrit jamais un nom déjà tapé.
+function heriterPersonnel() {
+  if (EDIT || posteManuel) return;
+  if (prog() !== 'SUITE' && prog() !== 'FIN') return;
+  const debut = posteDuJour();
+  if (!debut) return;
+  POSTE.forEach(([id, colonne]) => {
+    if (!$(id).value.trim() && debut[colonne]) $(id).value = debut[colonne];
+  });
+}
+
+POSTE.forEach(([id]) => {
+  $(id).addEventListener('input', () => {
+    posteManuel = true;
+  });
+});
 
 document.querySelectorAll('input[name="prog"]').forEach((x) => {
   x.addEventListener('change', () => {
     progManuel = true;
+    heriterPersonnel();
     check();
   });
 });
@@ -788,6 +830,7 @@ function resetForm() {
   listerVehicules();
   $('axe').value = ax;
   progManuel = false;
+  posteManuel = false;
   onAxe();
   $('msgs').innerHTML = '';
   proposeProg();

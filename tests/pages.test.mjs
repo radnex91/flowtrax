@@ -195,6 +195,28 @@ test('le personnel en poste est facultatif et se déclare à tout moment', () =>
   }
 });
 
+test('déclarer une suite reprend le personnel du début de journée', () => {
+  // ressaisir cinq noms à chaque départ ferait perdre ceux du début : les
+  // reprendre quand les champs sont vides garde la journée cohérente
+  const js = lire('public/assets/depart.js');
+
+  const source = js.slice(js.indexOf('function posteDuJour'), js.indexOf('function heriterPersonnel'));
+  assert.ok(source, 'posteDuJour absente');
+  assert.match(source, /x\.programme === 'DEBUT' \|\| x\.programme === 'DEBUT_FIN'/, 'la source doit être un début de journée');
+  assert.match(source, /x\.statut !== 'ANNULE'/, 'un début annulé ne doit pas servir de source');
+  assert.match(source, /x\.id !== EDIT\.id/, 'le départ en cours de modification doit être exclu');
+
+  const herite = js.slice(js.indexOf('function heriterPersonnel'), js.indexOf('POSTE.forEach(([id]) => {'));
+  assert.match(herite, /if \(EDIT \|\| posteManuel\) return/, 'une saisie manuelle ou une modification ne doit jamais être écrasée');
+  assert.match(herite, /prog\(\) !== 'SUITE' && prog\(\) !== 'FIN'/, 'seules une suite et une fin héritent');
+  assert.match(herite, /if \(!\$\(id\)\.value\.trim\(\) && debut\[colonne\]\)/, 'seuls les champs vides sont remplis');
+
+  assert.ok(
+    (js.match(/heriterPersonnel\(\);/g) || []).length >= 2,
+    'heriterPersonnel doit être branchée sur la proposition et sur le changement de programme'
+  );
+});
+
 test("chaque onglet de l'administration a son écran, et le sens vient du référentiel", () => {
   const html = lire('public/admin.html');
   const js = lire('public/assets/admin.js');
