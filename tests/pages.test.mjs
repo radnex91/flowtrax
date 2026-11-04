@@ -386,3 +386,17 @@ test('la suite et la fin ne sont proposées qu’après un début de programme',
   assert.match(js, /setProg\(progDispo\('SUITE'\) \? 'SUITE' : 'DEBUT'\)/, 'le programme proposé ignore la règle');
   assert.match(js, /un début de programme avant la fin/, 'la garde d’envoi ne couvre pas la fin');
 });
+
+test('aucun contrôle du formulaire ne masque la méthode reset', () => {
+  const html = lire('public/depart.html');
+  const js = lire('public/assets/depart.js');
+
+  // un bouton portant id="reset" répond à form.reset : la méthode du DOM est
+  // masquée et l’appel échoue sur « Effacer » comme sur « Nouveau départ »
+  const form = html.slice(html.indexOf('<form id="f"'), html.indexOf('</form>'));
+  assert.doesNotMatch(form, /id="reset"/, 'un contrôle nommé « reset » masque HTMLFormElement.reset');
+  assert.match(js, /\$\('f'\)\.reset\(\)/, 'le formulaire n’est plus remis à zéro');
+
+  assert.match(html, /id="effacer">Effacer</, 'le bouton Effacer a disparu');
+  assert.match(js, /\$\('effacer'\)\.addEventListener\('click'/, 'le bouton Effacer n’est plus branché');
+});

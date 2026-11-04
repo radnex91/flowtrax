@@ -825,6 +825,8 @@ $('copy').addEventListener('click', () => {
 
 function resetForm() {
   const ax = $('axe').value;
+  // aucun contrôle du formulaire ne doit s'appeler « reset » : un bouton de ce
+  // nom masque HTMLFormElement.reset et l'appel échouait sur « Effacer ».
   $('f').reset();
   // le véhicule du départ qu'on vient de modifier n'a plus à être proposé
   listerVehicules();
@@ -842,7 +844,7 @@ $('again').addEventListener('click', () => {
   $('f').hidden = false;
 });
 
-$('reset').addEventListener('click', () => {
+$('effacer').addEventListener('click', () => {
   if (EDIT) stopEdit();
   resetForm();
 });
