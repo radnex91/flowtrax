@@ -76,14 +76,20 @@ export function monterNav(role) {
   document.body.prepend(nav);
   document.body.classList.add('coque');
 
-  // la hauteur de l'en-tête collant est mesurée, pas devinée : le rail se cale
-  // dessous au pixel, y compris quand le nom du profil passe sur deux lignes
-  const entete = document.querySelector('header.top');
-  if (!entete) return;
-  const caler = () => {
-    document.documentElement.style.setProperty('--top-h', entete.offsetHeight + 'px');
+  // deux hauteurs mesurées, jamais devinées : --nav-h réserve sous le contenu
+  // la place exacte de la barre basse, --top-h cale le rail sous l'en-tête.
+  // Une valeur figée laissait le contenu passer sous la barre dès qu'un
+  // libellé (« Tableau de bord ») prenait deux lignes sur un écran étroit.
+  const mesurer = (el, variable) => {
+    const caler = () => {
+      document.documentElement.style.setProperty(variable, el.offsetHeight + 'px');
+    };
+    caler();
+    if ('ResizeObserver' in window) new window.ResizeObserver(caler).observe(el);
+    else window.addEventListener('resize', caler);
   };
-  caler();
-  if ('ResizeObserver' in window) new window.ResizeObserver(caler).observe(entete);
-  else window.addEventListener('resize', caler);
+  mesurer(nav, '--nav-h');
+
+  const entete = document.querySelector('header.top');
+  if (entete) mesurer(entete, '--top-h');
 }

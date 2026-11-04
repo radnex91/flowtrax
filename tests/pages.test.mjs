@@ -107,6 +107,24 @@ test('chaque écran de travail monte la coque, le bordereau reste dehors', () =>
   for (const p of pages) assert.ok(existsSync(resolve(pub, p)), `rubrique « ${p} » sans fichier`);
 });
 
+test('la barre basse réserve la hauteur qu’elle occupe vraiment', () => {
+  // 64 px étaient écrits en dur ; dès 360 px « Tableau de bord » passe sur
+  // deux lignes, la barre monte à 80 px et le bas du contenu passe dessous.
+  const css = lire('public/assets/app.css');
+  const nav = lire('public/assets/nav.js');
+
+  const coque = css.match(/\.coque\{display:block;padding-bottom:([^}]+)\}/);
+  assert.ok(coque, 'la coque mobile ne réserve aucune place pour la barre');
+  assert.match(coque[1], /var\(--nav-h/, 'la place réservée doit venir de la hauteur mesurée');
+
+  const toast = css.match(/\.coque \.toast\{bottom:([^}]+)\}/);
+  assert.ok(toast, 'le toast doit se caler au-dessus de la barre');
+  assert.match(toast[1], /var\(--nav-h/, 'le toast doit suivre la hauteur mesurée');
+
+  assert.match(nav, /setProperty\(variable, el\.offsetHeight/, 'nav.js mesure les hauteurs, il ne les devine pas');
+  assert.match(nav, /mesurer\(nav, '--nav-h'\)/, 'la barre doit alimenter --nav-h');
+});
+
 test('aucune clé service_role dans le dossier public', () => {
   // les commentaires ont le droit de nommer la clé pour avertir ; le code, non
   const sansCommentaires = (src) =>

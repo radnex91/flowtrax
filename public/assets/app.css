@@ -211,7 +211,7 @@ header.top .sub{
 .coque-nav a:focus-visible{outline:0;box-shadow:0 0 0 .2rem rgba(var(--bs-primary-rgb),.45)}
 
 @media (max-width:1023px){
-  .coque{display:block;padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+  .coque{display:block;padding-bottom:var(--nav-h, 64px)}
   .coque > .coque-nav{
     position:fixed;inset:auto 0 0 0;z-index:16;grid-row:auto;flex-direction:row;
     padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
@@ -227,7 +227,7 @@ header.top .sub{
   }
   .coque-nav a[aria-current="page"]{box-shadow:none}
   .coque-nav svg{width:21px;height:21px}
-  .coque .toast{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+  .coque .toast{bottom:calc(var(--nav-h, 64px) + 12px)}
 }
 
 /* ------------------------------------------------------- bandeau de quai */
