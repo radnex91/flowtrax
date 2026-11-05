@@ -1,36 +1,30 @@
 /* FlowTrax — la coque de l'application.
- *
- * Une seule liste de rubriques, un seul dessin : chaque écran appelle
- * monterNav(role) après requireSession(). Le bordereau imprimé ne l'appelle
- * pas — il reste hors coque, pour l'impression.
- *
- * Le rôle décide de ce qui apparaît : une agence ne voit ni Rapports ni
- * Administration. Les identifiants de page (`depart.html`…) sont ceux des
- * fichiers, sans extension dans le libellé affiché.
+ * Navigation principale Danay Express : rail latéral sombre avec identité de marque,
+ * menu d'écrans selon rôle, et bloc profil.
  */
 
 const RUBRIQUES = [
-  { page: 'depart.html', texte: 'Déclarer', roles: ['AGENCE', 'REGULATION', 'DIRECTION'] },
   { page: 'dashboard.html', texte: 'Tableau de bord', roles: ['AGENCE', 'REGULATION', 'DIRECTION'] },
+  { page: 'depart.html', texte: 'Déclarer un départ', roles: ['AGENCE', 'REGULATION', 'DIRECTION'] },
   { page: 'rapports.html', texte: 'Rapports', roles: ['REGULATION', 'DIRECTION'] },
   { page: 'admin.html', texte: 'Administration', roles: ['DIRECTION'] },
 ];
 
 const ICONES = {
-  'depart.html':
-    '<rect x="3" y="5" width="18" height="12" rx="2.5"/><path d="M3 11h18"/>' +
-    '<path d="M7 20h2M15 20h2"/>',
   'dashboard.html':
     '<rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/>' +
     '<rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/>',
+  'depart.html':
+    '<rect x="3" y="5" width="18" height="12" rx="2.5"/><path d="M3 11h18"/>' +
+    '<path d="M7 20h2M15 20h2"/>',
   'rapports.html':
-    '<path d="M5 20v-8M11 20V5M17 20v-5"/><path d="M3 20h18"/>',
+    '<path d="M18 20V10M12 20V4M6 20v-6"/><path d="M3 20h18"/>',
   'admin.html':
-    '<path d="M4 7h7M17 7h3M4 17h3M13 17h7"/><circle cx="13" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/>',
+    '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
 };
 
 const icone = (page) =>
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
   'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
   (ICONES[page] || '') +
   '</svg>';
@@ -42,8 +36,7 @@ function pageCourante() {
 }
 
 /**
- * Monte la coque. Sans effet si elle est déjà en place, pour que l'appel
- * depuis plusieurs modules d'un même écran ne duplique rien.
+ * Monte la coque Danay Express.
  * @param {string} [role] rôle du profil ; absent = toutes les rubriques
  */
 export function monterNav(role) {
@@ -56,7 +49,24 @@ export function monterNav(role) {
   nav.className = 'coque-nav';
   nav.setAttribute('aria-label', 'Navigation principale');
   nav.innerHTML =
-    '<p class="coque-titre">Départs</p><ul>' +
+    '<div class="coque-brand">' +
+      '<div class="coque-logo-box">' +
+        '<div class="coque-logo-arc">' +
+          '<svg viewBox="0 0 36 28" width="32" height="26" fill="none">' +
+            '<path d="M3 24C6 8 30 8 33 24" stroke="#ED5D0B" stroke-width="3" stroke-linecap="round"/>' +
+            '<rect x="9" y="11" width="18" height="11" rx="2" fill="#ED5D0B"/>' +
+            '<circle cx="13" cy="22" r="2" fill="#0B132B"/><circle cx="23" cy="22" r="2" fill="#0B132B"/>' +
+            '<line x1="9" y1="16" x2="27" y2="16" stroke="#fff" stroke-width="1.2"/>' +
+          '</svg>' +
+        '</div>' +
+        '<div class="coque-brand-text">' +
+          '<b class="brand-danay-title">DANAY EXPRESS</b>' +
+          '<span class="brand-danay-sub">Voyagez en toute confiance</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<p class="coque-titre" hidden>Navigation</p>' +
+    '<ul class="coque-links">' +
     vues
       .map(
         (r) =>
@@ -71,13 +81,44 @@ export function monterNav(role) {
           '</span></a></li>'
       )
       .join('') +
-    '</ul>';
+    '</ul>' +
+    '<div class="coque-footer">' +
+      '<div class="coque-user-pill">' +
+        '<div class="user-avatar-circle">' +
+          '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
+        '</div>' +
+        '<div class="user-info-text">' +
+          '<b class="nav-user-nom">Utilisateur</b>' +
+          '<span class="nav-user-role">' + (role ? role.toLowerCase() : 'connecté') + '</span>' +
+        '</div>' +
+        '<div class="user-pill-chevron" aria-hidden="true">▾</div>' +
+      '</div>' +
+      '<div class="coque-copy">© 2026 Danay Express</div>' +
+    '</div>';
 
   document.body.prepend(nav);
   document.body.classList.add('coque');
 
-  // la hauteur de l'en-tête collant est mesurée, pas devinée : le rail se cale
-  // dessous au pixel, y compris quand le nom du profil passe sur deux lignes
+  // Synchronisation du nom/rôle utilisateur avec le bloc #who
+  const synchroUser = () => {
+    const who = document.getElementById('who');
+    const txt = who?.textContent?.trim();
+    if (!txt) return;
+    const parts = txt.split('·').map((s) => s.trim());
+    const nom = parts[0];
+    const r = parts[1] || (role ? role.toLowerCase() : 'connecté');
+    const elNom = nav.querySelector('.nav-user-nom');
+    const elRole = nav.querySelector('.nav-user-role');
+    if (elNom && nom) elNom.textContent = nom;
+    if (elRole && r) elRole.textContent = r;
+  };
+  synchroUser();
+  const whoEl = document.getElementById('who');
+  if (whoEl && 'MutationObserver' in window) {
+    new window.MutationObserver(synchroUser).observe(whoEl, { childList: true, characterData: true, subtree: true });
+  }
+
+  // Ajustement de la hauteur sous l'en-tête
   const entete = document.querySelector('header.top');
   if (!entete) return;
   const caler = () => {
