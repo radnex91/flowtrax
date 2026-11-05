@@ -118,13 +118,20 @@ export function monterNav(role) {
     new window.MutationObserver(synchroUser).observe(whoEl, { childList: true, characterData: true, subtree: true });
   }
 
-  // Ajustement de la hauteur sous l'en-tête
-  const entete = document.querySelector('header.top');
-  if (!entete) return;
-  const caler = () => {
-    document.documentElement.style.setProperty('--top-h', entete.offsetHeight + 'px');
+  // deux hauteurs mesurées, jamais devinées : --nav-h réserve sous le contenu
+  // la place exacte de la barre basse, --top-h cale le rail sous l'en-tête.
+  // Une valeur figée laissait le contenu passer sous la barre dès qu'un
+  // libellé (« Tableau de bord ») prenait deux lignes sur un écran étroit.
+  const mesurer = (el, variable) => {
+    const caler = () => {
+      document.documentElement.style.setProperty(variable, el.offsetHeight + 'px');
+    };
+    caler();
+    if ('ResizeObserver' in window) new window.ResizeObserver(caler).observe(el);
+    else window.addEventListener('resize', caler);
   };
-  caler();
-  if ('ResizeObserver' in window) new window.ResizeObserver(caler).observe(entete);
-  else window.addEventListener('resize', caler);
+  mesurer(nav, '--nav-h');
+
+  const entete = document.querySelector('header.top');
+  if (entete) mesurer(entete, '--top-h');
 }

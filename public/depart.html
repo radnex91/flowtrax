@@ -21,7 +21,10 @@
   <button class="btn small ghost" type="button" id="logout" hidden>Se déconnecter</button>
 </div></header>
 
-<div id="boot" class="loading">Chargement du formulaire…</div>
+<div id="boot" class="loading" role="status">
+  <div class="spinner-border text-primary" aria-hidden="true"></div>
+  <span class="visually-hidden">Chargement du formulaire…</span>
+</div>
 
 <section id="app" hidden>
   <div class="wrap">
@@ -55,25 +58,28 @@
         <legend>Programme du jour</legend>
         <div class="seg" role="radiogroup" aria-label="Programme">
           <input type="radio" name="prog" id="prog-0" value="DEBUT"><label for="prog-0">Début</label>
-          <input type="radio" name="prog" id="prog-1" value="SUITE"><label for="prog-1">Suite</label>
-          <input type="radio" name="prog" id="prog-2" value="FIN"><label for="prog-2">Fin</label>
+          <input type="radio" name="prog" id="prog-1" value="SUITE" disabled><label for="prog-1">Suite</label>
+          <input type="radio" name="prog" id="prog-2" value="FIN" disabled><label for="prog-2">Fin</label>
           <input type="radio" name="prog" id="prog-3" value="DEBUT_FIN"><label for="prog-3">Début et fin</label>
         </div>
-        <p class="hint" id="proghint">Début : premier départ de la journée (00h00 à 23h59). Fin : dernier départ. Début et fin : départ unique de la journée.</p>
+        <p class="hint" id="proghint">Début : premier départ de la journée (00h00 à 23h59). Fin : dernier départ. Début et fin : départ unique de la journée. La suite et la fin supposent un début de programme déjà déclaré aujourd'hui.</p>
       </fieldset>
 
-      <fieldset id="fs-poste" hidden>
-        <legend>Personnel en poste</legend>
-        <div class="grid2">
-          <label for="guichetier">Guichetier<input id="guichetier" autocomplete="off"></label>
-          <label for="chef-agence">Chef d'agence<input id="chef-agence" autocomplete="off"></label>
+      <details class="opt" id="fs-poste">
+        <summary>Personnel en poste <span class="opt-tag">facultatif</span></summary>
+        <div class="opt-body">
+          <p class="hint">À remplir quand vous les connaissez ; laissé vide sur une suite ou une fin, il reprend les noms du début de journée.</p>
+          <div class="grid2">
+            <label for="guichetier">Guichetier<input id="guichetier" autocomplete="off"></label>
+            <label for="chef-agence">Chef d'agence<input id="chef-agence" autocomplete="off"></label>
+          </div>
+          <div class="grid3">
+            <label for="chef-piste-poste">Chef de piste en poste<input id="chef-piste-poste" autocomplete="off"></label>
+            <label for="porteur-accueil">Porteur accueil<input id="porteur-accueil" autocomplete="off"></label>
+            <label for="chef-piste-logistique">Chef de piste logistique<input id="chef-piste-logistique" autocomplete="off"></label>
+          </div>
         </div>
-        <div class="grid3">
-          <label for="chef-piste-poste">Chef de piste en poste<input id="chef-piste-poste" autocomplete="off"></label>
-          <label for="porteur-accueil">Porteur accueil<input id="porteur-accueil" autocomplete="off"></label>
-          <label for="chef-piste-logistique">Chef de piste logistique<input id="chef-piste-logistique" autocomplete="off"></label>
-        </div>
-      </fieldset>
+      </details>
 
       <fieldset>
         <legend>Itinéraire</legend>
@@ -136,7 +142,7 @@
       <div class="msgs" id="msgs"></div>
       <div class="actions">
         <button class="btn" type="submit" id="submit">Envoyer le départ</button>
-        <button class="btn ghost" type="button" id="reset">Effacer</button>
+        <button class="btn ghost" type="button" id="effacer">Effacer</button>
       </div>
     </form>
 

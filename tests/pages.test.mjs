@@ -107,6 +107,24 @@ test('chaque écran de travail monte la coque, le bordereau reste dehors', () =>
   for (const p of pages) assert.ok(existsSync(resolve(pub, p)), `rubrique « ${p} » sans fichier`);
 });
 
+test('la barre basse réserve la hauteur qu’elle occupe vraiment', () => {
+  // 64 px étaient écrits en dur ; dès 360 px « Tableau de bord » passe sur
+  // deux lignes, la barre monte à 80 px et le bas du contenu passe dessous.
+  const css = lire('public/assets/app.css');
+  const nav = lire('public/assets/nav.js');
+
+  const coque = css.match(/\.coque\{display:block;padding-bottom:([^}]+)\}/);
+  assert.ok(coque, 'la coque mobile ne réserve aucune place pour la barre');
+  assert.match(coque[1], /var\(--nav-h/, 'la place réservée doit venir de la hauteur mesurée');
+
+  const toast = css.match(/\.coque \.toast\{bottom:([^}]+)\}/);
+  assert.ok(toast, 'le toast doit se caler au-dessus de la barre');
+  assert.match(toast[1], /var\(--nav-h/, 'le toast doit suivre la hauteur mesurée');
+
+  assert.match(nav, /setProperty\(variable, el\.offsetHeight/, 'nav.js mesure les hauteurs, il ne les devine pas');
+  assert.match(nav, /mesurer\(nav, '--nav-h'\)/, 'la barre doit alimenter --nav-h');
+});
+
 test('aucune clé service_role dans le dossier public', () => {
   // les commentaires ont le droit de nommer la clé pour avertir ; le code, non
   const sansCommentaires = (src) =>
@@ -146,20 +164,28 @@ test("l'apparence s'écrit depuis Administration et se lit jusqu'au bordereau", 
   assert.match(lire('public/assets/login.js'), /chargerTheme\(sb\)/, "l'écran de connexion ne lit pas l'apparence");
 });
 
-test('le personnel en poste ne s’ouvre qu’au début de programme et part avec le départ', () => {
-  // le bloc est fermé dans la page : sans la règle il resterait ouvert sur une
-  // suite de programme, où plus personne ne le remplit
+test('le personnel en poste est facultatif, replié, et se déclare à tout moment', () => {
+  // le bloc n'ouvrait que sur un début de programme : un nom appris après coup
+  // n'avait plus d'endroit où se noter, et la règle se lisait comme une obligation.
+  // Il est maintenant replié au repos pour ne pas encombrer la saisie courante.
   const html = lire('public/depart.html');
-  assert.match(html, /<fieldset id="fs-poste" hidden>/, 'le bloc doit être fermé au chargement');
+  const debut = html.indexOf('<details class="opt" id="fs-poste">');
+  assert.ok(debut >= 0, 'le personnel en poste n’est plus un bloc repliable');
+  const bloc = html.slice(debut, html.indexOf('</details>', debut));
+  assert.match(bloc, /<summary>Personnel en poste <span class="opt-tag">facultatif<\/span><\/summary>/, 'le titre replié doit dire le bloc et son caractère facultatif');
+  assert.doesNotMatch(bloc, /<details[^>]*\bopen\b/, 'le bloc doit rester replié tant qu’on ne l’ouvre pas');
+  assert.match(bloc, /<div class="opt-body">/, 'le contenu replié est absent');
+
+  const css = lire('public/assets/app.css');
+  assert.match(css, /details\.opt>summary\{[^}]*list-style:none/, 'la puce native s’ajouterait au chevron');
+  assert.match(css, /details\.opt>summary::-webkit-details-marker\{display:none\}/, 'la flèche native doublerait le chevron');
+  assert.match(css, /details\.opt\[open\]>summary::after/, 'rien n’indique visuellement l’ouverture');
+  assert.match(css, /details\.opt>\.opt-body\{[^}]*display:grid/, 'le contenu replié ne retrouve pas la mise en page des blocs');
 
   const js = lire('public/assets/depart.js');
-  assert.match(js, /\$\('fs-poste'\)\.hidden = !personnelVisible\(\)/, 'aucune règle n’ouvre le bloc');
-
-  const i = js.indexOf('function personnelVisible');
-  assert.ok(i > 0, 'personnelVisible absente');
-  const regle = js.slice(i, js.indexOf('}', i));
-  assert.match(regle, /'DEBUT'/, 'le début de programme doit ouvrir le bloc');
-  assert.match(regle, /'DEBUT_FIN'/, 'début et fin ouvrent aussi la journée');
+  assert.doesNotMatch(js, /personnelVisible|majPersonnel/, 'plus de règle qui ouvre ou ferme le bloc selon le programme');
+  assert.doesNotMatch(js, /poste: personnelVisible/, 'l’envoi du personnel ne doit plus dépendre du programme');
+  assert.match(js, /poste: \{/, 'le personnel doit partir avec chaque départ');
 
   // le champ doit être lu à l'envoi **et** atterrir dans l'objet envoyé à la
   // base : un champ affiché mais oublié du payload se perd sans rien dire
@@ -176,6 +202,44 @@ test('le personnel en poste ne s’ouvre qu’au début de programme et part ave
     assert.ok(js.includes(`$('${id}').value.trim()`), `« ${id} » n’est pas lu à l’envoi`);
     assert.ok(js.includes(`${colonne}: ${valeur} || null`), `« ${colonne} » n’est pas écrit dans la ligne`);
   }
+});
+
+test('une agence ne choisit que les lignes qui partent de chez elle', () => {
+  // la liste proposait aussi les lignes où l'agence n'est qu'un arrêt : elle
+  // déclarait alors un départ dont la provenance était une autre agence
+  const js = lire('public/assets/depart.js');
+  const debut = js.indexOf('function buildAxes');
+  const bloc = js.slice(debut, js.indexOf('\n}', debut));
+  assert.match(bloc, /findIndex\(\(x\) => x\.id === AGENCE_ID\)/, 'l’agence doit être cherchée dans l’itinéraire');
+  assert.match(bloc, /return i === 0;/, 'une agence simple arrêt ne doit plus voir la ligne');
+  assert.doesNotMatch(bloc, /i < a\.agences\.length - 1/, 'l’ancienne règle laissait passer les arrêts intermédiaires');
+
+  // un départ déjà déclaré sous l'ancienne règle reste modifiable, sinon sa
+  // ligne absente de la liste rendrait la modification impossible
+  assert.match(js, /const connue = \[\.\.\.\$\('axe'\)\.options\]\.some/, 'la ligne du départ modifié doit être cherchée dans la liste');
+  assert.match(js, /insertAdjacentHTML\(\s*'afterbegin',/, 'la ligne manquante doit être ajoutée à la liste');
+});
+
+test('déclarer une suite reprend le personnel du début de journée', () => {
+  // ressaisir cinq noms à chaque départ ferait perdre ceux du début : les
+  // reprendre quand les champs sont vides garde la journée cohérente
+  const js = lire('public/assets/depart.js');
+
+  const source = js.slice(js.indexOf('function posteDuJour'), js.indexOf('function heriterPersonnel'));
+  assert.ok(source, 'posteDuJour absente');
+  assert.match(source, /x\.programme === 'DEBUT' \|\| x\.programme === 'DEBUT_FIN'/, 'la source doit être un début de journée');
+  assert.match(source, /x\.statut !== 'ANNULE'/, 'un début annulé ne doit pas servir de source');
+  assert.match(source, /x\.id !== EDIT\.id/, 'le départ en cours de modification doit être exclu');
+
+  const herite = js.slice(js.indexOf('function heriterPersonnel'), js.indexOf('POSTE.forEach(([id]) => {'));
+  assert.match(herite, /if \(EDIT \|\| posteManuel\) return/, 'une saisie manuelle ou une modification ne doit jamais être écrasée');
+  assert.match(herite, /prog\(\) !== 'SUITE' && prog\(\) !== 'FIN'/, 'seules une suite et une fin héritent');
+  assert.match(herite, /if \(!\$\(id\)\.value\.trim\(\) && debut\[colonne\]\)/, 'seuls les champs vides sont remplis');
+
+  assert.ok(
+    (js.match(/heriterPersonnel\(\);/g) || []).length >= 2,
+    'heriterPersonnel doit être branchée sur la proposition et sur le changement de programme'
+  );
 });
 
 test("chaque onglet de l'administration a son écran, et le sens vient du référentiel", () => {
@@ -285,4 +349,88 @@ test('le service worker met Bootstrap en cache et change de version', () => {
   assert.ok(n >= 14, `cache encore en v${n} : les pages garderaient l’ancien app.css`);
   assert.match(sw, /'\.\/vendor\/bootstrap\/bootstrap\.min\.css'/);
   assert.match(sw, /'\.\/vendor\/bootstrap\/bootstrap\.bundle\.min\.js'/);
+});
+
+test('chaque écran attend le chargement avec un spinner', () => {
+  const pages = [
+    'public/depart.html',
+    'public/dashboard.html',
+    'public/admin.html',
+    'public/rapports.html',
+    'public/bordereau.html',
+  ];
+
+  for (const page of pages) {
+    const html = lire(page);
+    const i = html.indexOf('<div id="boot"');
+    assert.ok(i > 0, `${page} : bloc de chargement #boot introuvable`);
+    const j = html.indexOf('<section', i);
+    const bloc = html.slice(i, j > i ? j : i + 260);
+
+    assert.match(bloc, /class="loading" role="status"/, `${page} : le chargement n’est pas annoncé`);
+    assert.match(bloc, /class="spinner-border/, `${page} : aucun spinner`);
+    assert.match(bloc, /class="visually-hidden"/, `${page} : libellé accessible manquant`);
+    assert.doesNotMatch(bloc, /class="loading"[^>]*>Chargement/, `${page} : le texte de chargement est resté`);
+  }
+});
+
+test('la suite et la fin ne sont proposées qu’après un début de programme', () => {
+  const js = lire('public/assets/depart.js');
+  const html = lire('public/depart.html');
+
+  assert.match(html, /id="prog-1" value="SUITE"/, 'le bouton Suite a disparu du sélecteur');
+  assert.match(html, /id="prog-2" value="FIN"/, 'le bouton Fin a disparu du sélecteur');
+
+  // fermés dès le HTML : aucun instant, avant le script, où ils seraient ouverts
+  assert.match(html, /id="prog-1" value="SUITE" disabled/, 'Suite s’ouvre avant même le chargement');
+  assert.match(html, /id="prog-2" value="FIN" disabled/, 'Fin s’ouvre avant même le chargement');
+
+  // la règle est extraite puis exécutée avec un faux état : les cas de contrôle
+  // (suite ou fin sans début) doivent répondre non, sinon le test ne voit pas la faute
+  const debut = js.indexOf('function progDispo');
+  const fin = js.indexOf('function majProgDispo');
+  assert.ok(debut > 0 && fin > debut, 'progDispo introuvable');
+  const source = js.slice(debut, fin) + '\nreturn progDispo;';
+  const dispo = (EDIT, actifs) => new Function('EDIT', 'actifs', source)(EDIT, actifs);
+
+  const aucun = () => [];
+  const suiteSeule = () => [{ programme: 'SUITE' }];
+
+  assert.equal(dispo(null, aucun)('SUITE'), false, 'sans aucun départ, la suite est possible');
+  assert.equal(dispo(null, aucun)('FIN'), false, 'sans aucun départ, la fin est possible');
+  assert.equal(dispo(null, suiteSeule)('SUITE'), false, 'une suite sans début ouvre la suite');
+  assert.equal(dispo(null, suiteSeule)('FIN'), false, 'une suite sans début ouvre la fin');
+  assert.equal(dispo(null, () => [{ programme: 'DEBUT' }])('SUITE'), true, 'un début doit ouvrir la suite');
+  assert.equal(dispo(null, () => [{ programme: 'DEBUT' }])('FIN'), true, 'un début doit ouvrir la fin');
+  assert.equal(dispo(null, () => [{ programme: 'DEBUT_FIN' }])('FIN'), true, 'début et fin ouvrent aussi la fin');
+  assert.equal(dispo(null, aucun)('DEBUT'), true, 'le début reste toujours possible');
+  assert.equal(dispo(null, aucun)('DEBUT_FIN'), true, 'début et fin reste toujours possible');
+  assert.equal(dispo({ programme: 'FIN' }, aucun)('FIN'), true, 'une fin en cours de modification doit rester modifiable');
+  assert.equal(dispo({ programme: 'FIN' }, aucun)('SUITE'), false, 'modifier une fin ne doit pas ouvrir la suite');
+
+  // la règle doit être branchée sur les boutons, pas seulement écrite
+  assert.match(js, /\['SUITE', 'FIN'\]\.forEach/, 'le bouton Fin n’est pas mis à jour');
+  assert.match(js, /\.disabled = !progDispo\(v\)/, 'les boutons Suite et Fin ne sont pas désactivés');
+  assert.match(js, /function proposeProg\(\) \{\s*majProgDispo\(\)/, 'proposeProg ne met pas les boutons à jour');
+  assert.match(js, /setProg\(progDispo\('SUITE'\) \? 'SUITE' : 'DEBUT'\)/, 'le programme proposé ignore la règle');
+  assert.match(js, /un début de programme avant la fin/, 'la garde d’envoi ne couvre pas la fin');
+
+  // un clic forcé sur la suite ou la fin sans début doit revenir au début
+  assert.match(js, /if \(!progDispo\(x\.value\)\) \{\s*setProg\('DEBUT'\)/, 'le changement de programme ne vérifie pas la règle');
+  // une liste du jour qui ne répond pas ne doit pas laisser les deux ouverts
+  assert.match(js, /Liste indisponible[\s\S]{0,400}MINE = \[\];\s*proposeProg\(\);/, 'la liste en erreur laisse Suite et Fin ouvertes');
+});
+
+test('aucun contrôle du formulaire ne masque la méthode reset', () => {
+  const html = lire('public/depart.html');
+  const js = lire('public/assets/depart.js');
+
+  // un bouton portant id="reset" répond à form.reset : la méthode du DOM est
+  // masquée et l’appel échoue sur « Effacer » comme sur « Nouveau départ »
+  const form = html.slice(html.indexOf('<form id="f"'), html.indexOf('</form>'));
+  assert.doesNotMatch(form, /id="reset"/, 'un contrôle nommé « reset » masque HTMLFormElement.reset');
+  assert.match(js, /\$\('f'\)\.reset\(\)/, 'le formulaire n’est plus remis à zéro');
+
+  assert.match(html, /id="effacer">Effacer</, 'le bouton Effacer a disparu');
+  assert.match(js, /\$\('effacer'\)\.addEventListener\('click'/, 'le bouton Effacer n’est plus branché');
 });

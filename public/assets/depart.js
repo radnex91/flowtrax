@@ -44,6 +44,15 @@ let TODAY = null;
 let EDIT = null;
 let busy = false;
 let progManuel = false;
+let posteManuel = false;
+
+const POSTE = [
+  ['guichetier', 'guichetier'],
+  ['chef-agence', 'chef_agence'],
+  ['chef-piste-poste', 'chef_piste_poste'],
+  ['porteur-accueil', 'porteur_accueil'],
+  ['chef-piste-logistique', 'chef_piste_logistique'],
+];
 
 function toast(t) {
   const el = $('toast');
@@ -216,7 +225,9 @@ function listerVehicules(immatEnPlus) {
 function buildAxes() {
   const list = AXES.filter((a) => {
     const i = a.agences.findIndex((x) => x.id === AGENCE_ID);
-    return i >= 0 && i < a.agences.length - 1;
+    // une ligne appartient à l'agence qui la fait partir : passer par elle en
+    // cours de route ne donne pas le droit de la choisir
+    return i === 0;
   }).map((a) => ({ value: String(a.id), label: a.nom }));
 
   opts($('axe'), list, list.length ? 'Choisir l\'axe…' : 'Aucun axe au départ de cette agence');
@@ -268,6 +279,7 @@ $('agence').addEventListener('change', () => {
   $('f').reset();
   $('msgs').innerHTML = '';
   progManuel = false;
+  posteManuel = false;
   $('done').hidden = true;
   $('f').hidden = false;
 
@@ -497,33 +509,77 @@ function setProg(v) {
   document.querySelectorAll('input[name="prog"]').forEach((x) => {
     x.checked = x.value === v;
   });
-  majPersonnel();
-}
-
-// Le personnel en poste ne se note qu'une fois, à l'ouverture de la journée :
-// les autres départs de la journée partent avec les mêmes personnes.
-function personnelVisible() {
-  const p = prog();
-  return p === 'DEBUT' || p === 'DEBUT_FIN';
-}
-
-function majPersonnel() {
-  $('fs-poste').hidden = !personnelVisible();
 }
 
 function actifs() {
   return MINE.filter((x) => x.statut !== 'ANNULE' && (!EDIT || x.id !== EDIT.id));
 }
 
+// La suite et la fin supposent qu'un début de programme ait déjà été déclaré
+// aujourd'hui. Un départ déjà enregistré comme suite ou fin reste modifiable
+// même si son début a été annulé entre-temps.
+function progDispo(v) {
+  if (EDIT && EDIT.programme === v) return true;
+  if (v !== 'SUITE' && v !== 'FIN') return true;
+  return actifs().some((x) => x.programme === 'DEBUT' || x.programme === 'DEBUT_FIN');
+}
+
+function majProgDispo() {
+  ['SUITE', 'FIN'].forEach((v) => {
+    document.querySelector('input[name="prog"][value="' + v + '"]').disabled = !progDispo(v);
+  });
+  if (!progDispo(prog())) setProg('DEBUT');
+}
+
 function proposeProg() {
-  if (!progManuel && !EDIT) setProg(actifs().length ? 'SUITE' : 'DEBUT');
+  majProgDispo();
+  if (!progManuel && !EDIT) setProg(progDispo('SUITE') ? 'SUITE' : 'DEBUT');
+  heriterPersonnel();
   check();
 }
 
+// Le personnel du jour se note là où on le connaît : déclarer une suite ou une
+// fin sans le ressaisir reprend les noms portés par le début de journée.
+function posteDuJour() {
+  return (
+    MINE.filter(
+      (x) =>
+        x.statut !== 'ANNULE' &&
+        (x.programme === 'DEBUT' || x.programme === 'DEBUT_FIN') &&
+        (!EDIT || x.id !== EDIT.id)
+    ).pop() || null
+  );
+}
+
+// Une saisie manuelle l'emporte : on ne réécrit jamais un nom déjà tapé.
+function heriterPersonnel() {
+  if (EDIT || posteManuel) return;
+  if (prog() !== 'SUITE' && prog() !== 'FIN') return;
+  const debut = posteDuJour();
+  if (!debut) return;
+  POSTE.forEach(([id, colonne]) => {
+    if (!$(id).value.trim() && debut[colonne]) $(id).value = debut[colonne];
+  });
+}
+
+POSTE.forEach(([id]) => {
+  $(id).addEventListener('input', () => {
+    posteManuel = true;
+  });
+});
+
 document.querySelectorAll('input[name="prog"]').forEach((x) => {
   x.addEventListener('change', () => {
+    // sans début de journée, une suite ou une fin ne doit pas s'ouvrir par un
+    // clic forcé (libellé, état restauré, script) : le choix revient au début
+    if (!progDispo(x.value)) {
+      setProg('DEBUT');
+      majProgDispo();
+      check();
+      return;
+    }
     progManuel = true;
-    majPersonnel();
+    heriterPersonnel();
     check();
   });
 });
@@ -537,6 +593,9 @@ function collect() {
   const missing = [];
 
   if (!prog()) missing.push('le programme (début, suite ou fin)');
+  if (!progDispo(prog())) {
+    missing.push(prog() === 'FIN' ? 'un début de programme avant la fin' : 'un début de programme avant la suite');
+  }
 
   const need = {
     axe: 'l\'axe',
@@ -594,16 +653,14 @@ function collect() {
     chauffeur: $('chauffeur').value.trim(),
     convoyeur: $('convoyeur').value.trim(),
     chefPiste: $('chefpiste').value.trim(),
-    // hors début de programme, le bloc est fermé : rien de saisi n'est envoyé
-    poste: personnelVisible()
-      ? {
-          guichetier: $('guichetier').value.trim(),
-          chefAgence: $('chef-agence').value.trim(),
-          chefPistePoste: $('chef-piste-poste').value.trim(),
-          porteurAccueil: $('porteur-accueil').value.trim(),
-          chefPisteLogistique: $('chef-piste-logistique').value.trim(),
-        }
-      : null,
+    // facultatif et indépendant du programme : les noms laissés vides partent à null
+    poste: {
+      guichetier: $('guichetier').value.trim(),
+      chefAgence: $('chef-agence').value.trim(),
+      chefPistePoste: $('chef-piste-poste').value.trim(),
+      porteurAccueil: $('porteur-accueil').value.trim(),
+      chefPisteLogistique: $('chef-piste-logistique').value.trim(),
+    },
   };
 }
 
@@ -778,11 +835,14 @@ $('copy').addEventListener('click', () => {
 
 function resetForm() {
   const ax = $('axe').value;
+  // aucun contrôle du formulaire ne doit s'appeler « reset » : un bouton de ce
+  // nom masque HTMLFormElement.reset et l'appel échouait sur « Effacer ».
   $('f').reset();
   // le véhicule du départ qu'on vient de modifier n'a plus à être proposé
   listerVehicules();
   $('axe').value = ax;
   progManuel = false;
+  posteManuel = false;
   onAxe();
   $('msgs').innerHTML = '';
   proposeProg();
@@ -794,7 +854,7 @@ $('again').addEventListener('click', () => {
   $('f').hidden = false;
 });
 
-$('reset').addEventListener('click', () => {
+$('effacer').addEventListener('click', () => {
   if (EDIT) stopEdit();
   resetForm();
 });
@@ -821,8 +881,20 @@ function startEdit(x) {
   $('f').hidden = false;
   $('msgs').innerHTML = '';
 
+  // un départ déjà déclaré sur une ligne qui ne part pas d'ici (règle
+  // précédente) doit rester modifiable : sa ligne revient dans la liste
+  const connue = [...$('axe').options].some((o) => o.value === String(x.axe_id));
+  if (!connue) {
+    $('axe').insertAdjacentHTML(
+      'afterbegin',
+      '<option value="' + x.axe_id + '">' + esc(x.axe) + '</option>'
+    );
+    $('axe').disabled = false;
+  }
+
   progManuel = true;
   setProg(x.programme);
+  majProgDispo();
 
   $('axe').value = String(x.axe_id);
   onAxe();
@@ -955,6 +1027,10 @@ async function loadMine() {
 
   if (error) {
     $('mine').innerHTML = '<div class="empty">Liste indisponible pour le moment.</div>';
+    // la liste fait foi pour la suite et la fin : sans elle, on ne garde pas un
+    // état supposé et les deux programmes restent fermés
+    MINE = [];
+    proposeProg();
     return;
   }
 
