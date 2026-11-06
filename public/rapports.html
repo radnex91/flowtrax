@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Rapports · Départs</title>
+<title>Rapports d'activité · Danay Express</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -11,38 +11,70 @@
 <link rel="stylesheet" href="assets/app.css">
 <script src="assets/theme-boot.js"></script>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#C4560B">
+<meta name="theme-color" content="#ED5D0B">
 </head>
-<body>
+<body class="page-rapports">
 
-<header class="top"><div class="wrap wide">
-  <div class="brand"><img class="logo" src="assets/logo.jpg" alt="Danay Express SARL"><span>Rapports</span></div>
-  <span class="sub" id="who"></span>
-  <a class="btn small ghost" href="dashboard.html">Tableau de bord</a>
-  <button class="btn small ghost" type="button" id="logout" hidden>Se déconnecter</button>
+<header class="top"><div class="wrap wide header-dash-wrap">
+  <div class="header-dash-left">
+    <div class="header-dash-brand">
+      <div class="brand">
+        <img class="logo" src="assets/logo.jpg" alt="Danay Express SARL" hidden>
+        <span class="header-dash-title">Rapports d'activité</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="header-dash-right">
+    <div class="header-company-info">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1"/></svg>
+      <span>Danay Express SARL</span>
+    </div>
+
+    <span class="sub" id="who"></span>
+    <button class="btn btn-logout-dash" type="button" id="logout" hidden>
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span>Déconnexion</span>
+    </button>
+  </div>
 </div></header>
 
 <div id="boot" class="loading" role="status">
   <div class="spinner-border text-primary" aria-hidden="true"></div>
-  <span class="visually-hidden">Chargement…</span>
+  <span class="visually-hidden">Chargement des rapports…</span>
 </div>
 
 <section id="app" hidden>
-  <div class="wrap wide">
+  <div class="wrap wide dash-main-wrap">
     <div class="banner bad" id="msg" role="alert" hidden></div>
 
-    <section class="board">
-      <div class="toolbar">
-        <label for="du">Du<input id="du" type="date" required></label>
-        <label for="au">Au<input id="au" type="date" required></label>
-        <label for="agence">Agence<select id="agence"><option value="">Toutes</option></select></label>
-        <button class="btn small ghost" type="button" id="refresh">Actualiser</button>
+    <!-- Hero Card Danay Express avec visuel Bus -->
+    <section class="board dash-hero-banner">
+      <div class="dash-hero-content">
+        <h1 class="dash-hero-title">Rapports d'<span class="highlight-orange">activité</span></h1>
+        <p class="dash-hero-desc">Consultez l'historique d'exploitation et exportez les statistiques en CSV</p>
+        <div class="dash-hero-stripe" aria-hidden="true"></div>
+
+        <div class="toolbar dash-filter-toolbar">
+          <label for="du">Du<input id="du" type="date" required></label>
+          <label for="au">Au<input id="au" type="date" required></label>
+          <label for="agence">Agence<select id="agence"><option value="">Toutes</option></select></label>
+          <button class="btn small btn-refresh-dash" type="button" id="refresh">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Actualiser</span>
+          </button>
+        </div>
+
+        <nav class="tabs dash-tabs" id="tabs" aria-label="Vues">
+          <button type="button" data-view="periode" class="on">Période</button>
+          <button type="button" data-view="histo">Historique</button>
+        </nav>
       </div>
 
-      <nav class="tabs" id="tabs" aria-label="Vues">
-        <button type="button" data-view="periode" class="on">Période</button>
-        <button type="button" data-view="histo">Historique</button>
-      </nav>
+      <div class="dash-hero-bus-box">
+        <div class="dash-hero-bus-overlay"></div>
+        <img class="dash-bus-image" src="assets/bus.jpg" alt="Bus Danay Express">
+      </div>
     </section>
 
     <div id="vue-periode">

@@ -15,10 +15,28 @@
 </head>
 <body>
 
-<header class="top"><div class="wrap">
-  <div class="brand"><img class="logo" src="assets/logo.jpg" alt="Danay Express SARL"><span>Départs</span></div>
-  <span class="sub" id="who"></span>
-  <button class="btn small ghost" type="button" id="logout" hidden>Se déconnecter</button>
+<header class="top"><div class="wrap wide header-dash-wrap">
+  <div class="header-dash-left">
+    <div class="header-dash-brand">
+      <div class="brand">
+        <img class="logo" src="assets/logo.jpg" alt="Danay Express SARL" hidden>
+        <span class="header-dash-title">Déclarer un départ</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="header-dash-right">
+    <div class="header-company-info">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1"/></svg>
+      <span>Danay Express SARL</span>
+    </div>
+
+    <span class="sub" id="who"></span>
+    <button class="btn btn-logout-dash" type="button" id="logout" hidden>
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span>Déconnexion</span>
+    </button>
+  </div>
 </div></header>
 
 <div id="boot" class="loading" role="status">
@@ -27,15 +45,24 @@
 </div>
 
 <section id="app" hidden>
-  <div class="wrap">
+  <div class="wrap dash-main-wrap">
     <div class="banner bad" id="tz-warning" hidden>
       <b>Fuseau horaire non réglé.</b> Les heures et la fenêtre de modification sont
       calculées en UTC. La direction doit régler <code>settings.timezone</code>.
     </div>
 
-    <section class="board hero-page">
-      <h1 id="ftitle">Déclarer un départ</h1>
-      <p class="lead">Remplissez les cases, puis envoyez. Le message pour le groupe WhatsApp est préparé automatiquement.</p>
+    <!-- Hero Card Danay Express avec visuel Bus -->
+    <section class="board dash-hero-banner">
+      <div class="dash-hero-content">
+        <h1 class="dash-hero-title" id="ftitle">Déclarer un <span class="highlight-orange">départ</span></h1>
+        <p class="dash-hero-desc">Remplissez les cases, puis envoyez. Le message pour le groupe WhatsApp est préparé automatiquement.</p>
+        <div class="dash-hero-stripe" aria-hidden="true"></div>
+      </div>
+
+      <div class="dash-hero-bus-box">
+        <div class="dash-hero-bus-overlay"></div>
+        <img class="dash-bus-image" src="assets/bus.jpg" alt="Bus Danay Express">
+      </div>
     </section>
 
     <div class="card" id="pick" hidden>
