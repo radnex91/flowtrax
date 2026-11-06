@@ -27,7 +27,7 @@ init();
 async function init() {
   let ctx;
   try {
-    ctx = await requireSession({ roles: ['REGULATION', 'DIRECTION'], requireAgence: false });
+    ctx = await requireSession({ perm: 'rapports.lire', requireAgence: false });
   } catch (e) {
     $('boot').textContent = 'Connexion au serveur impossible : ' + erreurLisible(e);
     return;
@@ -35,8 +35,8 @@ async function init() {
   if (!ctx) return;
 
   SESSION = ctx.profile;
-  monterNav(SESSION.role);
-  $('who').textContent = SESSION.nom + ' · ' + SESSION.role.toLowerCase();
+  monterNav(SESSION);
+  $('who').textContent = SESSION.nom + ' · ' + (SESSION.role_libelle || SESSION.role).toLowerCase();
   $('logout').hidden = false;
 
   const { data: jour } = await sb.rpc('today_service');

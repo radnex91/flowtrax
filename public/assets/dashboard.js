@@ -24,7 +24,7 @@ function dateLisible(isoStr) {
 async function init() {
   let ctx;
   try {
-    ctx = await requireSession({ roles: ['REGULATION', 'DIRECTION'], requireAgence: false });
+    ctx = await requireSession({ perm: 'dashboard.lire', requireAgence: false });
   } catch (e) {
     $('boot').textContent = 'Connexion au serveur impossible : ' + erreurLisible(e);
     return;
@@ -32,12 +32,12 @@ async function init() {
   if (!ctx) return;
 
   SESSION = ctx.profile;
-  monterNav(SESSION.role);
+  monterNav(SESSION);
 
-  $('who').textContent = SESSION.nom + ' · ' + SESSION.role.toLowerCase();
+  $('who').textContent = SESSION.nom + ' · ' + (SESSION.role_libelle || SESSION.role).toLowerCase();
   $('logout').hidden = false;
-  if (SESSION.role !== 'AGENCE') $('reportslink').hidden = false;
-  if (SESSION.role === 'DIRECTION') $('adminlink').hidden = false;
+  if (SESSION.permissions.includes('rapports.lire')) $('reportslink').hidden = false;
+  if (SESSION.permissions.includes('admin.acces')) $('adminlink').hidden = false;
 
   try {
     const { data, error } = await sb.rpc('today_service');

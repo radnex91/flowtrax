@@ -30,17 +30,29 @@ test("la fonction revérifie le JWT, même si la passerelle l'a déjà fait", ()
   assert.match(fonction, /replace\(\/\^Bearer\\s\+\/i, ''\)/);
 });
 
-test("le rôle est lu en base, jamais dans le corps de la requête", () => {
-  const garde = fonction.match(/if \(!profil\?\.actif \|\| profil\.role !== 'DIRECTION'\)/);
-  assert.ok(garde, "la fonction doit exiger un profil actif de rôle DIRECTION");
+test('le droit est lu dans la matrice, jamais dans le corps de la requête', () => {
+  // 0012 : ce n'est plus le nom du rôle qui autorise, mais la permission
+  // « admin.comptes » dans role_permissions. Un rôle créé à l'écran peut donc
+  // ouvrir l'écran Comptes sans qu'on redéploie cette fonction.
+  const garde = fonction.match(/if \(!droit\)[\s\S]{0,120}403/);
+  assert.ok(garde, 'la fonction doit exiger la permission admin.comptes');
 
   const i = fonction.indexOf(garde.index);
   const avant = fonction.slice(0, i);
   assert.match(avant, /from\('profiles'\)[\s\S]{0,200}?\.eq\('id', qui\.user\.id\)/);
+  assert.match(avant, /from\('roles'\)[\s\S]{0,120}?\.eq\('code', profil\.role\)/, 'le rôle doit être lu en base');
+  assert.match(
+    avant,
+    /from\('role_permissions'\)[\s\S]{0,200}?\.eq\('permission', 'admin\.comptes'\)/,
+    'le droit doit venir de la matrice'
+  );
   assert.match(avant, /createClient\(url, service/, 'la lecture du rôle doit se faire avec le client service');
+
+  // le nom du rôle ne doit plus servir de laissez-passer nulle part
+  assert.doesNotMatch(fonction, /role\s*!==\s*'DIRECTION'/, 'la fonction compare encore le nom du rôle');
 });
 
-test('on ne peut ni se supprimer soi-même, ni supprimer le dernier direction actif', () => {
+test('on ne peut ni se supprimer soi-même, ni supprimer le dernier gestionnaire des rôles', () => {
   assert.match(
     fonction,
     /if \(id === profil\.id\)[\s\S]{0,200}?supprimer votre propre compte/,
@@ -51,16 +63,21 @@ test('on ne peut ni se supprimer soi-même, ni supprimer le dernier direction ac
   assert.ok(i > 0);
   const bloc = fonction.slice(i);
 
-  assert.match(bloc, /cible\.role === 'DIRECTION'/);
+  // la cible est jugée sur la matrice, pas sur le nom du rôle
+  assert.match(bloc, /\.eq\('permission', 'admin\.roles'\)/, 'les rôles gestionnaires doivent venir de la matrice');
+  assert.match(bloc, /rolesGestionnaires\.includes\(String\(cible\.role\)\)/);
   assert.match(bloc, /count: 'exact', head: true/);
-  assert.match(bloc, /\(count \?\? 0\) <= 1/, 'le dernier compte direction doit être protégé');
+  assert.match(bloc, /\.neq\('id', id\)/, 'le compte visé ne doit pas se compter lui-même');
+  assert.match(bloc, /\(count \?\? 0\) <= 0/, 'le dernier compte capable de rouvrir la matrice doit être protégé');
 });
 
 test('un profil qui échoue laisse le compte de connexion supprimé', () => {
   // Sinon : un compte Auth sans profil, impossible à rattacher depuis l'écran.
   const i = fonction.indexOf("action === 'creer'");
   assert.ok(i > 0);
-  const bloc = fonction.slice(i, i + 2000);
+  // la création valide le rôle et la matrice avant d'ouvrir le compte : la
+  // fenêtre suit jusqu'à la branche suivante plutôt qu'une longueur devinée
+  const bloc = fonction.slice(i, fonction.indexOf("action === 'identifiant'", i));
 
   assert.match(bloc, /createUser\(/);
   assert.match(bloc, /from\('profiles'\)\.insert/);

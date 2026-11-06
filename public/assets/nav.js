@@ -1,13 +1,13 @@
 /* FlowTrax — la coque de l'application.
  * Navigation principale Danay Express : rail latéral sombre avec identité de marque,
- * menu d'écrans selon rôle, et bloc profil.
+ * menu d'écrans selon les permissions du profil, et bloc profil.
  */
 
 const RUBRIQUES = [
-  { page: 'dashboard.html', texte: 'Tableau de bord', roles: ['AGENCE', 'REGULATION', 'DIRECTION'] },
-  { page: 'depart.html', texte: 'Déclarer un départ', roles: ['AGENCE', 'REGULATION', 'DIRECTION'] },
-  { page: 'rapports.html', texte: 'Rapports', roles: ['REGULATION', 'DIRECTION'] },
-  { page: 'admin.html', texte: 'Administration', roles: ['DIRECTION'] },
+  { page: 'dashboard.html', texte: 'Tableau de bord', perms: ['dashboard.lire'] },
+  { page: 'depart.html', texte: 'Déclarer un départ', perms: ['depart.lire', 'depart.declarer'] },
+  { page: 'rapports.html', texte: 'Rapports', perms: ['rapports.lire'] },
+  { page: 'admin.html', texte: 'Administration', perms: ['admin.acces'] },
 ];
 
 const ICONES = {
@@ -37,13 +37,16 @@ function pageCourante() {
 
 /**
  * Monte la coque Danay Express.
- * @param {string} [role] rôle du profil ; absent = toutes les rubriques
+ * @param {{role?: string, role_libelle?: string, permissions?: string[]}} [profil]
+ *        les rubriques suivent les permissions ; sans profil, toutes
  */
-export function monterNav(role) {
+export function monterNav(profil) {
   if (!document.body || document.querySelector('.coque-nav')) return;
 
   const ici = pageCourante();
-  const vues = RUBRIQUES.filter((r) => !role || r.roles.includes(role));
+  const perms = (profil && profil.permissions) || [];
+  const libelleRole = (profil && (profil.role_libelle || profil.role)) || 'connecté';
+  const vues = RUBRIQUES.filter((r) => r.perms.some((p) => perms.includes(p)));
 
   const nav = document.createElement('nav');
   nav.className = 'coque-nav';
@@ -89,7 +92,7 @@ export function monterNav(role) {
         '</div>' +
         '<div class="user-info-text">' +
           '<b class="nav-user-nom">Utilisateur</b>' +
-          '<span class="nav-user-role">' + (role ? role.toLowerCase() : 'connecté') + '</span>' +
+          '<span class="nav-user-role">' + libelleRole.toLowerCase() + '</span>' +
         '</div>' +
         '<div class="user-pill-chevron" aria-hidden="true">▾</div>' +
       '</div>' +
@@ -106,7 +109,7 @@ export function monterNav(role) {
     if (!txt) return;
     const parts = txt.split('·').map((s) => s.trim());
     const nom = parts[0];
-    const r = parts[1] || (role ? role.toLowerCase() : 'connecté');
+    const r = parts[1] || libelleRole.toLowerCase();
     const elNom = nav.querySelector('.nav-user-nom');
     const elRole = nav.querySelector('.nav-user-role');
     if (elNom && nom) elNom.textContent = nom;

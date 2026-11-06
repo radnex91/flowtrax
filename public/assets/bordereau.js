@@ -20,7 +20,7 @@ async function init() {
   let ctx;
   try {
     // l'agence imprime son propre bordereau : la RLS filtre, pas cette page
-    ctx = await requireSession({ roles: null, requireAgence: false });
+    ctx = await requireSession({ perm: 'depart.lire', requireAgence: false });
   } catch (e) {
     $('boot').textContent = 'Connexion au serveur impossible : ' + erreurLisible(e);
     return;

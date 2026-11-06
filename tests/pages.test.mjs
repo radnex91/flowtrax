@@ -95,7 +95,7 @@ test('chaque écran de travail monte la coque, le bordereau reste dehors', () =>
   for (const nom of ['depart', 'dashboard', 'admin', 'rapports']) {
     const js = lire(`public/assets/${nom}.js`);
     assert.match(js, /import \{ monterNav \} from '\.\/nav\.js'/, `${nom}.js n'importe pas nav.js`);
-    assert.match(js, /monterNav\(SESSION\.role\)/, `${nom}.js ne monte pas la coque`);
+    assert.match(js, /monterNav\(SESSION\)/, `${nom}.js ne monte pas la coque`);
   }
   assert.ok(
     !lire('public/assets/bordereau.js').includes('nav.js'),
@@ -105,6 +105,13 @@ test('chaque écran de travail monte la coque, le bordereau reste dehors', () =>
   const pages = [...lire('public/assets/nav.js').matchAll(/page: '([\w.-]+)'/g)].map((m) => m[1]);
   assert.equal(pages.length, 4, 'la coque doit déclarer quatre rubriques');
   for (const p of pages) assert.ok(existsSync(resolve(pub, p)), `rubrique « ${p} » sans fichier`);
+
+  // une rubrique s'ouvre sur une permission, jamais sur un nom de rôle : un
+  // rôle ajouté depuis l'administration ne doit pas demander une ligne de code
+  const nav = lire('public/assets/nav.js');
+  assert.match(nav, /perms: \['dashboard\.lire'\]/);
+  assert.match(nav, /perms: \['admin\.acces'\]/);
+  assert.doesNotMatch(nav, /roles: \[/, 'la coque filtre encore par nom de rôle');
 });
 
 test('la barre basse réserve la hauteur qu’elle occupe vraiment', () => {

@@ -88,10 +88,10 @@ init();
 async function init() {
   let ctx;
   try {
-    // AGENCE saisit pour elle-même ; DIRECTION et REGULATION saisissent pour
-    // une agence qu'elles choisissent (policy dep_insert, 0007).
+    // on ouvre la saisie à qui peut lire, déclarer ou modifier un départ : un
+    // rôle de consultation garde ainsi accès à la liste sans pouvoir écrire
     ctx = await requireSession({
-      roles: ['AGENCE', 'REGULATION', 'DIRECTION'],
+      perm: ['depart.lire', 'depart.declarer', 'depart.modifier'],
       requireAgence: false,
     });
   } catch (e) {
@@ -104,16 +104,23 @@ async function init() {
     userId: ctx.session.user.id,
     nom: ctx.profile.nom,
     role: ctx.profile.role,
+    roleLibelle: ctx.profile.role_libelle || ctx.profile.role,
+    permissions: ctx.profile.permissions || [],
     agenceId: ctx.profile.agence_id,
   };
 
-  if (SESSION.role === 'AGENCE' && !SESSION.agenceId) {
+  // un rôle limité à son agence ne peut pas travailler sans rattachement
+  const surUneAgence =
+    !SESSION.permissions.includes('depart.lire_tout') &&
+    !SESSION.permissions.includes('depart.declarer_tout');
+
+  if (surUneAgence && !SESSION.agenceId) {
     location.replace('index.html?erreur=agence');
     return;
   }
 
   AGENCE_ID = SESSION.agenceId;
-  monterNav(SESSION.role);
+  monterNav(SESSION);
 
   try {
     const { data: t, error: eT } = await sb.rpc('today_service');
@@ -189,10 +196,10 @@ function start() {
   buildAxes();
 }
 
-// Une agence saisit pour elle-même ; la direction et la régulation choisissent
-// l'agence, et ce choix est mémorisé sur le poste.
+// Un rôle limité à son agence saisit pour elle-même ; celui qui peut déclarer
+// pour tout le monde choisit l'agence, et ce choix est mémorisé sur le poste.
 function choisirAgence() {
-  if (SESSION.role !== 'AGENCE') {
+  if (SESSION.permissions.includes('depart.declarer_tout')) {
     const memo = Number(store.get('agence-travail', 0));
     AGENCE_ID = AGENCES.some((a) => a.id === memo) ? memo : AGENCES[0] ? AGENCES[0].id : null;
     opts($('agence'), AGENCES.map((a) => ({ value: String(a.id), label: etiquetteAgence(a) })));
@@ -204,11 +211,9 @@ function choisirAgence() {
 
 function majWho() {
   SESSION.agenceNom = nomAgence(AGENCE_ID);
-  $('who').textContent =
-    SESSION.role === 'AGENCE'
-      ? 'Agence : ' + SESSION.agenceNom
-      : (SESSION.role === 'DIRECTION' ? 'Direction' : 'Régulation') +
-        ' · déclaration pour ' + SESSION.agenceNom;
+  $('who').textContent = SESSION.permissions.includes('depart.declarer_tout')
+    ? SESSION.roleLibelle + ' · déclaration pour ' + SESSION.agenceNom
+    : 'Agence : ' + SESSION.agenceNom;
 }
 
 // Un véhicule sorti du parc n'est plus proposé, sauf celui du départ qu'on

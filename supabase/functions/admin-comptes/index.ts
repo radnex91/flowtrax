@@ -25,7 +25,6 @@ const json = (body: unknown, status = 200) =>
     headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS },
   });
 
-const ROLES = new Set(['AGENCE', 'REGULATION', 'DIRECTION']);
 const MOT_DE_PASSE_MIN = 8;
 
 // Supabase Auth n'accepte que des emails : un identifiant `ag01` est porté par
@@ -94,7 +93,8 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // 2. Quel rôle ? Le rôle vient de la base, pas du corps de la requête.
+  // 2. Quel droit ? Le rôle vient de la base, et la matrice dit s'il peut
+  //    gérer les comptes — jamais le corps de la requête.
   const { data: profil, error: eProfil } = await admin
     .from('profiles')
     .select('id, role, actif')
@@ -102,9 +102,26 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   if (eProfil) return json({ error: eProfil.message }, 500);
-  if (!profil?.actif || profil.role !== 'DIRECTION') {
-    return json({ error: 'action réservée à la direction' }, 403);
-  }
+  if (!profil?.actif) return json({ error: 'action réservée aux rôles qui gèrent les comptes' }, 403);
+
+  const { data: roleProfil, error: eRole } = await admin
+    .from('roles')
+    .select('code, actif')
+    .eq('code', profil.role)
+    .maybeSingle();
+
+  if (eRole) return json({ error: eRole.message }, 500);
+  if (!roleProfil?.actif) return json({ error: 'rôle désactivé' }, 403);
+
+  const { data: droit, error: eDroit } = await admin
+    .from('role_permissions')
+    .select('permission')
+    .eq('role', profil.role)
+    .eq('permission', 'admin.comptes')
+    .maybeSingle();
+
+  if (eDroit) return json({ error: eDroit.message }, 500);
+  if (!droit) return json({ error: 'action réservée aux rôles qui gèrent les comptes' }, 403);
 
   const corps = await req.json().catch(() => null);
   if (!corps || typeof corps !== 'object') return json({ error: 'corps JSON attendu' }, 400);
@@ -137,9 +154,28 @@ Deno.serve(async (req) => {
       );
     }
     if (!nom) return json({ error: 'nom requis' }, 400);
-    if (!ROLES.has(role)) return json({ error: 'rôle inconnu' }, 400);
-    if (role === 'AGENCE' && !agence) {
-      return json({ error: 'un compte agence doit être rattaché à une agence' }, 400);
+
+    const { data: roleChoisi } = await admin
+      .from('roles')
+      .select('code, actif')
+      .eq('code', role)
+      .maybeSingle();
+    if (!roleChoisi?.actif) return json({ error: 'rôle inconnu ou désactivé' }, 400);
+
+    // un rôle qui ne travaille que sur son agence a besoin d'un rattachement
+    const { data: droitsRole } = await admin
+      .from('role_permissions')
+      .select('permission')
+      .eq('role', role);
+    const droits = new Set((droitsRole || []).map((d) => d.permission));
+    const surUneAgence =
+      ['depart.lire', 'depart.declarer', 'depart.modifier', 'depart.annuler'].some((p) => droits.has(p)) &&
+      !['depart.lire_tout', 'depart.declarer_tout'].some((p) => droits.has(p));
+    if (surUneAgence && !agence) {
+      return json(
+        { error: 'ce rôle travaille sur une seule agence : rattachez le compte à une agence' },
+        400
+      );
     }
     if (motdepasse.length < MOT_DE_PASSE_MIN) {
       return json({ error: `mot de passe : ${MOT_DE_PASSE_MIN} caractères minimum` }, 400);
@@ -255,17 +291,25 @@ Deno.serve(async (req) => {
 
     if (!cible) return json({ error: 'compte inconnu' }, 404);
 
-    // ne pas se verrouiller dehors : il doit rester un direction actif
-    if (cible.role === 'DIRECTION') {
+    // ne pas se verrouiller dehors : il doit rester un compte actif capable
+    // de rouvrir la matrice des rôles
+    const { data: rolesAdmins } = await admin
+      .from('role_permissions')
+      .select('role')
+      .eq('permission', 'admin.roles');
+    const rolesGestionnaires = (rolesAdmins || []).map((r) => r.role);
+
+    if (cible.actif && rolesGestionnaires.includes(String(cible.role))) {
       const { count } = await admin
         .from('profiles')
         .select('id', { count: 'exact', head: true })
-        .eq('role', 'DIRECTION')
-        .eq('actif', true);
+        .eq('actif', true)
+        .in('role', rolesGestionnaires)
+        .neq('id', id);
 
-      if ((count ?? 0) <= 1) {
+      if ((count ?? 0) <= 0) {
         return json(
-          { error: 'c\'est le dernier compte direction actif : créez-en un autre avant' },
+          { error: "c'est le dernier compte qui peut gérer les rôles : créez-en un autre avant" },
           400
         );
       }

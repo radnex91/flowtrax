@@ -1,4 +1,4 @@
-import { sb, isConfigured } from './supa.js';
+import { sb, isConfigured, permissionsCourantes } from './supa.js';
 import { versEmail } from './ident.js';
 import { chargerTheme } from './theme.js';
 
@@ -158,7 +158,15 @@ async function verifierEtRediriger() {
     return;
   }
 
-  if (profil.role === 'AGENCE' && !profil.agence_id) {
+  const perms = await permissionsCourantes(profil.role);
+
+  // un rôle qui ne travaille que sur son agence a besoin d'un rattachement
+  const surUneAgence =
+    (perms.includes('depart.lire') || perms.includes('depart.declarer')) &&
+    !perms.includes('depart.lire_tout') &&
+    !perms.includes('depart.declarer_tout');
+
+  if (surUneAgence && !profil.agence_id) {
     await sb.auth.signOut();
     afficher(ERREURS.agence);
     btn.disabled = false;
@@ -166,5 +174,21 @@ async function verifierEtRediriger() {
     return;
   }
 
-  location.replace(profil.role === 'AGENCE' ? 'depart.html' : 'dashboard.html');
+  // premier écran que ce profil a le droit d'ouvrir
+  const accueil = perms.includes('dashboard.lire')
+    ? 'dashboard.html'
+    : perms.includes('depart.lire') || perms.includes('depart.declarer')
+      ? 'depart.html'
+      : perms.includes('admin.acces')
+        ? 'admin.html'
+        : '';
+
+  if (!accueil) {
+    afficher(ERREURS.role);
+    btn.disabled = false;
+    btn.textContent = 'Se connecter';
+    return;
+  }
+
+  location.replace(accueil);
 }

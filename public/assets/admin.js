@@ -24,6 +24,9 @@ const DATA = {
   agents: [],
   profiles: [],
   settings: [],
+  roles: [],
+  permissions: [],
+  role_permissions: [],
 };
 
 let SESSION = null;
@@ -33,6 +36,7 @@ let ITIN_AXE = null; // ligne dont on édite l'itinéraire
 let ITIN = []; // agences ordonnées de cette ligne
 let MDP_ID = null; // compte dont on change le mot de passe
 let IDENT_ID = null; // compte dont on change l'identifiant
+let PERM_ROLE = null; // rôle dont on édite la matrice des permissions
 let APPARENCE = { accent: '', mode: 'auto', logo: '' }; // apparence en base, ou en cours d'édition
 
 const nomAgence = (id) => (DATA.agences.find((a) => a.id === id) || {}).nom || '—';
@@ -66,11 +70,60 @@ const SENS_OPT = () => {
     .map((s) => ({ v: s.nom, l: libelleSens(s.nom) + (s.actif ? '' : ' (désactivé)') }));
 };
 
-const ROLES_OPT = () => [
+const ROLES_LEGACY = [
   { v: 'AGENCE', l: 'Agence — saisie de son agence' },
   { v: 'REGULATION', l: 'Régulation — lecture de tout' },
   { v: 'DIRECTION', l: 'Direction — tout, plus cet écran' },
-];
+]; // la liste de 0001, tant que 0012 n'est pas passée
+
+const libelleRole = (code) => {
+  const r = DATA.roles.find((x) => x.code === code);
+  return r ? r.libelle : String(code == null ? '' : code) || '—';
+};
+
+const comptesDuRole = (code) => DATA.profiles.filter((p) => p.role === code).length;
+
+const ROLES_OPT = () => {
+  if (!DATA.roles.length) return ROLES_LEGACY;
+  // le rôle déjà porté par le compte qu'on modifie reste proposé même
+  // désactivé, sinon l'enregistrement le reclasserait sans le dire
+  const cur = EDITE && EDITE.role;
+  return DATA.roles
+    .filter((r) => r.actif || r.code === cur)
+    .map((r) => ({ v: r.code, l: r.libelle + (r.actif ? '' : ' (désactivé)') }));
+};
+
+const aDroit = (role, code) =>
+  DATA.role_permissions.some((x) => x.role === role && x.permission === code);
+
+/* Un rôle qui ne travaille que sur son agence doit être rattaché : la règle
+   est écrite une fois pour l'écran et une fois dans profiles_guard (0012). */
+const agenceRequise = (role) => {
+  if (!DATA.role_permissions.length) return role === 'AGENCE';
+  const portee = ['depart.lire', 'depart.declarer', 'depart.modifier', 'depart.annuler'].some((c) =>
+    aDroit(role, c)
+  );
+  const global = ['depart.lire_tout', 'depart.declarer_tout'].some((c) => aDroit(role, c));
+  return portee && !global;
+};
+
+/* Un onglet ne s'ouvre que sur la permission qui le couvre : la policy RLS
+   refuserait de toute façon, mais l'écran ne doit pas proposer un formulaire
+   qui échouera à l'enregistrement. */
+const REQUIS = {
+  agences: 'admin.referentiels',
+  axes: 'admin.referentiels',
+  sens: 'admin.referentiels',
+  vehicules: 'admin.referentiels',
+  fonctions: 'admin.referentiels',
+  agents: 'admin.referentiels',
+  reglages: 'admin.referentiels',
+  apparence: 'admin.referentiels',
+  comptes: 'admin.comptes',
+  roles: 'admin.roles',
+};
+
+const permis = (code) => Boolean(SESSION && SESSION.permissions && SESSION.permissions.includes(code));
 
 /* Fonctions : deux colonnes pour ce que l'équipage compare et pour ce que
    l'écran affiche. Le code reste stable ('CHEF_PISTE'), le libellé se renomme
@@ -315,7 +368,7 @@ const SPECS = {
     colonnes: [
       { k: 'nom', l: 'Nom' },
       { k: 'username', l: 'Identifiant', f: (r) => esc(r.username || depuisEmail(r.email) || '—') },
-      { k: 'role', l: 'Rôle' },
+      { k: 'role', l: 'Rôle', f: (r) => esc(libelleRole(r.role)) },
       { k: 'agence_id', l: 'Agence', f: (r) => esc(nomAgence(r.agence_id)) },
       { k: 'actif', l: 'Actif', f: (r) => oui(r.actif) },
     ],
@@ -326,7 +379,51 @@ const SPECS = {
       { n: 'actif', l: 'Compte actif', t: 'check' },
     ],
     figer: (r) => (r.id === SESSION.id ? ['role', 'actif'] : []),
-    verifier: (o) => (o.role === 'AGENCE' && !o.agence_id ? 'Un compte agence doit être rattaché à une agence.' : null),
+    verifier: (o) =>
+      o.role && agenceRequise(o.role) && !o.agence_id
+        ? 'Ce rôle travaille sur une seule agence : rattachez le compte à une agence.'
+        : null,
+  },
+
+  roles: {
+    titre: 'Rôles et permissions',
+    aide: "Un rôle est un ensemble de droits. Le code ne bouge pas quand on renomme le libellé : c'est lui que portent les comptes. Le rôle Direction ne peut être ni supprimé ni désactivé, et garde toujours « Gérer les rôles et leurs permissions » — sinon plus personne ne pourrait rouvrir cet écran.",
+    table: 'roles',
+    cle: 'code',
+    singulier: 'un rôle',
+    ajout: true,
+    supprimable: true,
+    permissions: true,
+    colonnes: [
+      { k: 'libelle', l: 'Rôle' },
+      { k: 'code', l: 'Code', f: (r) => '<span class="mono">' + esc(r.code) + '</span>' },
+      { k: 'description', l: 'Description' },
+      { k: 'code', l: 'Comptes', n: true, f: (r) => String(comptesDuRole(r.code)) },
+      { k: 'actif', l: 'Actif', f: (r) => oui(r.actif) },
+    ],
+    champs: [
+      {
+        n: 'libelle',
+        l: 'Rôle',
+        t: 'text',
+        req: true,
+        aide: 'ex. « Guichet », « Chef de ligne » : le code se fabrique à partir du nom, une fois',
+      },
+      { n: 'description', l: 'Description', t: 'text', aide: 'à quoi sert ce rôle, en une phrase' },
+      { n: 'actif', l: 'Rôle actif', t: 'check' },
+    ],
+    defaut: { actif: true },
+    normaliser: (o) => {
+      if (o.libelle) o.libelle = o.libelle.trim().replace(/\s+/g, ' ');
+      // comme les fonctions : le code suit le libellé à la création seulement,
+      // sinon renommer un rôle réécrirait les comptes qui le portent
+      if (!EDITE && o.libelle) o.code = codeDepuisLibelle(o.libelle);
+    },
+    verifier: (o) => {
+      if (!o.libelle) return 'Donnez un nom à ce rôle.';
+      if (!EDITE && !o.code) return 'Ce nom ne contient ni lettre ni chiffre : écrivez par exemple « Guichet ».';
+      return null;
+    },
   },
 
   reglages: {
@@ -388,7 +485,7 @@ init();
 async function init() {
   let ctx;
   try {
-    ctx = await requireSession({ roles: ['DIRECTION'], requireAgence: false });
+    ctx = await requireSession({ perm: 'admin.acces', requireAgence: false });
   } catch (e) {
     $('boot').textContent = 'Connexion au serveur impossible : ' + erreurLisible(e);
     return;
@@ -396,11 +493,25 @@ async function init() {
   if (!ctx) return;
 
   SESSION = ctx.profile;
-  monterNav(SESSION.role);
-  $('who').textContent = SESSION.nom + ' · direction';
+  monterNav(SESSION);
+  $('who').textContent = SESSION.nom + ' · ' + (SESSION.role_libelle || SESSION.role).toLowerCase();
   $('logout').hidden = false;
 
   if (!(await charger())) return;
+
+  // les onglets suivent les permissions : la RLS refuserait de toute façon,
+  // mais un onglet ouvert sur un formulaire refusé ferait perdre la saisie
+  const onglets = [...document.querySelectorAll('#tabs button')];
+  const vus = onglets.filter((b) => permis(REQUIS[b.dataset.sec] || 'admin.referentiels'));
+  for (const b of onglets) if (!vus.includes(b)) b.remove();
+
+  if (!vus.length) {
+    $('boot').textContent = "Ce compte peut ouvrir l'administration, mais aucune section ne lui est ouverte.";
+    return;
+  }
+  if (!vus.some((b) => b.dataset.sec === SECTION)) {
+    SECTION = vus[0].dataset.sec;
+  }
 
   $('boot').hidden = true;
   $('app').hidden = false;
@@ -414,6 +525,7 @@ async function init() {
     ITIN = [];
     MDP_ID = null;
     IDENT_ID = null;
+    PERM_ROLE = null;
     alerte(null);
     rendre();
   });
@@ -469,6 +581,17 @@ async function charger() {
 
   const fonctions = await sb.from('fonctions').select('code, libelle, actif').order('libelle');
   DATA.fonctions = fonctions.error ? [] : fonctions.data || [];
+
+  // Même principe que 0010/0011 : tant que 0012 n'est pas passée, les tables
+  // manquent et l'écran garde les listes d'hier au lieu de tout refuser.
+  const [roles, perms, liens] = await Promise.all([
+    sb.from('roles').select('code, libelle, description, systeme, actif, ordre').order('ordre'),
+    sb.from('permissions').select('code, libelle, module, ordre').order('ordre'),
+    sb.from('role_permissions').select('role, permission'),
+  ]);
+  DATA.roles = roles.error ? [] : roles.data || [];
+  DATA.permissions = perms.error ? [] : perms.data || [];
+  DATA.role_permissions = liens.error ? [] : liens.data || [];
 
   APPARENCE = apparenceEnBase();
   appliquer(APPARENCE);
@@ -526,6 +649,7 @@ function rendre() {
   if (SECTION === 'comptes' && IDENT_ID) blocs.push(carteIdentifiant());
   if (SECTION === 'comptes' && MDP_ID) blocs.push(carteMdp());
   if (SECTION === 'axes' && ITIN_AXE != null) blocs.push(carteItin());
+  if (SECTION === 'roles' && PERM_ROLE) blocs.push(cartePermissions());
   blocs.push(carteTable(spec));
   if (SECTION === 'vehicules') blocs.push(carteImportParc());
   $('zone').innerHTML = blocs.join('');
@@ -555,6 +679,10 @@ function rendre() {
     e.preventDefault();
     importerParc();
   });
+  $('form-perms')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    enregistrerPermissions();
+  });
   $('imp-fichier')?.addEventListener('change', async (e) => {
     const f = e.target.files[0];
     if (!f) return;
@@ -568,6 +696,11 @@ function rendre() {
 
     if (d.edit) {
       EDITE = DATA[spec.table].find((r) => String(r[spec.cle]) === d.edit) || null;
+      alerte(null);
+      rendre();
+    } else if (d.perm) {
+      PERM_ROLE = d.perm;
+      EDITE = null;
       alerte(null);
       rendre();
     } else if (d.del) {
@@ -616,6 +749,10 @@ function rendre() {
       rendre();
     } else if (d.act === 'mdp-close') {
       MDP_ID = null;
+      alerte(null);
+      rendre();
+    } else if (d.act === 'perm-close') {
+      PERM_ROLE = null;
       alerte(null);
       rendre();
     }
@@ -790,6 +927,11 @@ function carteTable(spec) {
       if (spec.itineraire) {
         boutons.push(
           '<button class="btn small ghost" type="button" data-itin="' + esc(r.id) + '">Itinéraire</button>'
+        );
+      }
+      if (spec.permissions) {
+        boutons.push(
+          '<button class="btn small ghost" type="button" data-perm="' + esc(r.code) + '">Permissions</button>'
         );
       }
       if (spec.gestionComptes) {
@@ -1032,6 +1174,7 @@ async function enregistrer(spec) {
 
   alerte(null);
 
+  const creation = !EDITE;
   const { error } = EDITE
     ? await sb.from(spec.table).update(obj).eq(spec.cle, EDITE[spec.cle])
     : await sb.from(spec.table).insert(obj);
@@ -1043,6 +1186,10 @@ async function enregistrer(spec) {
 
   EDITE = null;
   await charger();
+  // un rôle naît sans aucun droit : on ouvre sa matrice tout de suite, sinon
+  // le compte qui le portera n'ouvrirait aucun écran et personne ne saurait
+  // d'où vient le refus
+  if (creation && spec.permissions && obj.code) PERM_ROLE = obj.code;
   rendre();
   toast('Enregistré.');
 }
@@ -1102,6 +1249,92 @@ async function enregistrerItin() {
   await charger();
   rendre();
   toast('Itinéraire enregistré.');
+}
+
+/* ---------------------------------------------------- rôles et permissions */
+
+// La matrice est une case par action : cocher un droit l'accorde à tous les
+// comptes qui portent ce rôle. Elle s'enregistre d'un bloc, par
+// set_role_permissions (0012), qui ne retire que les droits décochés.
+function cartePermissions() {
+  const role = DATA.roles.find((r) => r.code === PERM_ROLE);
+  const cochees = DATA.role_permissions
+    .filter((x) => x.role === PERM_ROLE)
+    .map((x) => x.permission);
+
+  const modules = [];
+  for (const p of DATA.permissions) {
+    let m = modules.find((x) => x.nom === p.module);
+    if (!m) modules.push((m = { nom: p.module, items: [] }));
+    m.items.push(p);
+  }
+
+  const estDirection = PERM_ROLE === 'DIRECTION';
+
+  const blocs = modules
+    .map(
+      (m) =>
+        '<fieldset class="perm-module"><legend>' +
+        esc(m.nom) +
+        '</legend>' +
+        m.items
+          .map((p) => {
+            // la direction ne peut pas perdre le droit de rouvrir cette matrice
+            const fixe = estDirection && p.code === 'admin.roles';
+            return (
+              '<label class="chk"><input type="checkbox" data-perm="' +
+              esc(p.code) +
+              '"' +
+              (fixe || cochees.includes(p.code) ? ' checked' : '') +
+              (fixe ? ' disabled' : '') +
+              '> ' +
+              esc(p.libelle) +
+              '</label>'
+            );
+          })
+          .join('') +
+        '</fieldset>'
+    )
+    .join('');
+
+  return (
+    '<form class="card formedit" id="form-perms">' +
+    '<h2>Permissions — ' +
+    esc(role ? role.libelle : PERM_ROLE) +
+    '</h2>' +
+    '<p class="hint">Cocher un droit l\'accorde à tous les comptes qui portent ce rôle, au prochain chargement de leur écran.</p>' +
+    '<div class="perms">' +
+    blocs +
+    '</div>' +
+    '<div class="actions">' +
+    '<button class="btn" type="submit">Enregistrer les permissions</button>' +
+    '<button class="btn ghost" type="button" data-act="perm-close">Fermer</button>' +
+    '</div>' +
+    '</form>'
+  );
+}
+
+async function enregistrerPermissions() {
+  const codes = [...document.querySelectorAll('#form-perms input[data-perm]')]
+    .filter((c) => c.checked)
+    .map((c) => c.dataset.perm);
+
+  alerte(null);
+
+  const { error } = await sb.rpc('set_role_permissions', {
+    p_role: PERM_ROLE,
+    p_permissions: codes,
+  });
+
+  if (error) {
+    alerte(erreurLisible(error));
+    return;
+  }
+
+  PERM_ROLE = null;
+  await charger();
+  rendre();
+  toast('Permissions enregistrées.');
 }
 
 /* ------------------------------------------------ comptes (Edge Function) */
@@ -1226,8 +1459,8 @@ async function creerCompte() {
   if (corps.mot_de_passe.length < MOT_DE_PASSE_MIN) {
     return alerte('Mot de passe : ' + MOT_DE_PASSE_MIN + ' caractères minimum.');
   }
-  if (corps.role === 'AGENCE' && !corps.agence_id) {
-    return alerte('Un compte agence doit être rattaché à une agence.');
+  if (agenceRequise(corps.role) && !corps.agence_id) {
+    return alerte('Ce rôle travaille sur une seule agence : rattachez le compte à une agence.');
   }
 
   alerte(null);
