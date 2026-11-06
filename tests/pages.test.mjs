@@ -132,6 +132,36 @@ test('la barre basse réserve la hauteur qu’elle occupe vraiment', () => {
   assert.match(nav, /mesurer\(nav, '--nav-h'\)/, 'la barre doit alimenter --nav-h');
 });
 
+test('aucun onglet ne se cache derrière un défilement invisible', () => {
+  // Le 2026-11-06, « Rôles » existait bien mais restait hors de vue : la bande
+  // d'onglets de la carte d'administration mesure 574 px pour 894 px de
+  // pastilles, et sa barre de défilement est masquée. Quatre onglets étaient
+  // inatteignables sans deviner qu'on pouvait faire glisser la bande.
+  const css = lire('public/assets/app.css');
+
+  const bande = css.match(/\.dash-tabs,\s*\n\.tabs\{([^}]*)\}/);
+  assert.ok(bande, 'la règle des onglets est introuvable');
+  assert.match(bande[1], /flex-wrap:\s*wrap/, 'les onglets doivent passer à la ligne plutôt que sortir de la vue');
+  assert.doesNotMatch(
+    bande[1],
+    /overflow-x:\s*auto/,
+    'un défilement horizontal sans barre visible cache des onglets'
+  );
+
+  // un libellé sur deux lignes rendrait la bande illisible : c'est bien la
+  // pastille entière qui passe à la ligne, pas son texte
+  assert.match(
+    css,
+    /\.dash-tabs button,\s*\n\.tabs button\{[^}]*white-space:nowrap/,
+    'un libellé coupé en deux rend la bande illisible'
+  );
+
+  const admin = lire('public/admin.html');
+  for (const sec of ['comptes', 'roles', 'reglages', 'apparence']) {
+    assert.ok(admin.includes(`data-sec="${sec}"`), `l'onglet « ${sec} » manque`);
+  }
+});
+
 test('aucune clé service_role dans le dossier public', () => {
   // les commentaires ont le droit de nommer la clé pour avertir ; le code, non
   const sansCommentaires = (src) =>
