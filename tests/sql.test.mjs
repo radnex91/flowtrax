@@ -299,6 +299,64 @@ test('on ne peut pas se couper du droit de rouvrir la matrice', () => {
   assert.match(sql, /dernier compte qui peut gérer les rôles/, 'le dernier gestionnaire des rôles n’est pas protégé');
 });
 
+test('les messages de WhatsApp sont des gabarits en base, réécrits sous un droit dédié', () => {
+  // 0013 : les trois textes partis après une déclaration quittent wa.js pour
+  // public.messages. Sans droit dédié, n'importe quel compte pourrait réécrire
+  // ce que lisent toutes les agences.
+  const i = sql.indexOf('create table if not exists public.messages');
+  assert.ok(i > 0, 'public.messages absente');
+
+  const bloc = sql.slice(i, sql.indexOf('with nouvelle as (', i));
+  assert.match(bloc, /code\s+text primary key/, 'le code du message doit être la clé');
+  assert.match(bloc, /gabarit\s+text not null/, 'le texte doit être obligatoire');
+
+  for (const code of ['DEPART', 'CORRECTION', 'ANNULATION']) {
+    assert.ok(
+      bloc.includes(`('${code}',`),
+      `« ${code} » non semé : l'onglet Messages s'ouvrirait sur une liste vide`
+    );
+  }
+  assert.match(sql, /\$msg\$[\s\S]*?\{agence_maj\}[\s\S]*?\$msg\$/, 'les gabarits doivent porter des {variables}');
+  assert.match(sql, /on conflict \(code\) do nothing/, 'rejouer 0013 ne doit pas écraser un texte réglé');
+
+  // le droit : écrit avec la permission, et posé une seule fois — un second
+  // passage ne le rend pas à un rôle dont on l'a retiré depuis
+  assert.match(sql, /'messages\.gerer',\s*'Modifier les messages envoyés aux agences'/);
+  assert.match(sql, /with nouvelle as \([\s\S]{0,400}returning code/);
+  assert.match(sql, /join public\.roles r on r\.code = 'DIRECTION'/);
+
+  // lecture pour tous les comptes, écriture pour le seul droit
+  assert.match(sql, /alter table public\.messages enable row level security/);
+  assert.match(sql, /create policy messages_read on public\.messages for select to authenticated\s+using \(true\)/);
+  assert.match(
+    sql,
+    /create policy messages_write on public\.messages for all to authenticated\s+using \(public\.a_permission\('messages\.gerer'\)\)/,
+    "l'écriture d'un message n'est pas gardée par messages.gerer"
+  );
+  assert.match(sql, /grant select on public\.messages to authenticated/);
+  assert.match(sql, /grant insert, update, delete on public\.messages to authenticated/);
+});
+
+test('les gabarits sont lus à l’ouverture de l’écran, avant qu’un message ne soit composé', () => {
+  // un gabarit lu trop tard laisserait partir le texte d'origine après une
+  // réécriture : la lecture précède le premier écran qui compose un message
+  assert.match(supa, /from\('messages'\)\.select\('code, gabarit'\)/);
+  assert.match(supa, /setGabarits\(/, 'supa.js ne remet pas les gabarits en place');
+  assert.ok(
+    supa.indexOf("from('messages')") > supa.indexOf('await chargerTheme(sb)'),
+    'les gabarits doivent être lus avant que la page ne dessine'
+  );
+});
+
+test('une colonne de texte long se saisit dans une zone, pas dans un champ d’une ligne', () => {
+  // un gabarit fait vingt lignes : un <input> le tronquerait à l'affichage et
+  // ferait perdre les retours à la ligne au passage
+  const admin = readFileSync(resolve(root, 'public/assets/admin.js'), 'utf8');
+  assert.match(admin, /t: 'zone'/, 'le champ du gabarit n’est pas une zone de texte');
+  assert.match(admin, /<textarea id="/, 'aucune zone de texte construite par le formulaire');
+  assert.match(admin, /messages: 'messages\.gerer'/, "l'onglet Messages n'exige pas le droit dédié");
+});
+
 test('les gardes des départs lisent la matrice, plus le nom du rôle', () => {
   const i = sql.lastIndexOf('create or replace function public.departures_guard');
   assert.ok(i > 0, 'departures_guard absente');

@@ -4,6 +4,7 @@ import { FONCTION_COMPTES } from './config.js';
 import { monterNav } from './nav.js';
 import { ACCENTS, appliquer, hexValide, logoAcceptable, reduireLogo } from './theme.js';
 import { parcDepuisCsv } from './csv.js';
+import { rendreGabarit, valeursAnnulation, valeursDepart, variablesDe } from './wa.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) =>
@@ -27,6 +28,7 @@ const DATA = {
   roles: [],
   permissions: [],
   role_permissions: [],
+  messages: [],
 };
 
 let SESSION = null;
@@ -121,6 +123,7 @@ const REQUIS = {
   apparence: 'admin.referentiels',
   comptes: 'admin.comptes',
   roles: 'admin.roles',
+  messages: 'messages.gerer',
 };
 
 const permis = (code) => Boolean(SESSION && SESSION.permissions && SESSION.permissions.includes(code));
@@ -426,6 +429,53 @@ const SPECS = {
     },
   },
 
+  messages: {
+    titre: 'Messages',
+    aide: "Ces textes partent sur WhatsApp après une déclaration. Les {variables} entre accolades sont remplacées à l'envoi ; une ligne qui ne contient que des variables vides disparaît — c'est ainsi que la ligne des passants s'efface quand il n'y en a pas. Le texte s'écrit librement, retours à la ligne compris : c'est lui que les agences lisent.",
+    table: 'messages',
+    cle: 'code',
+    singulier: 'un message',
+    ajout: false,
+    supprimable: false,
+    colonnes: [
+      { k: 'libelle', l: 'Message' },
+      { k: 'code', l: 'Code', f: (r) => '<span class="mono">' + esc(r.code) + '</span>' },
+      { k: 'gabarit', l: 'Première ligne', f: (r) => esc(premiereLigne(r)) },
+      {
+        k: 'code',
+        l: 'Variables',
+        n: true,
+        f: (r) => String(variablesDe(r.code).length),
+      },
+    ],
+    champs: [
+      { n: 'libelle', l: 'Nom', t: 'text', req: true },
+      {
+        n: 'gabarit',
+        l: 'Texte du message',
+        t: 'zone',
+        req: true,
+        lignes: 24,
+        aide: 'Les {variables} sont remplacées à l\'envoi ; le reste est envoyé tel quel.',
+      },
+    ],
+    verifier: (o) => {
+      if (!o.gabarit) return 'Le texte du message est vide.';
+      const connues = new Set(variablesDe(EDITE && EDITE.code).map((v) => v[0]));
+      const fautives = [...o.gabarit.matchAll(/\{([a-z_]+)\}/g)]
+        .map((m) => m[1])
+        .filter((j) => !connues.has(j));
+      if (fautives.length) {
+        return (
+          'Variable inconnue : ' +
+          [...new Set(fautives)].map((j) => '{' + j + '}').join(', ') +
+          '. Choisissez-en une dans la liste sous le texte.'
+        );
+      }
+      return null;
+    },
+  },
+
   reglages: {
     titre: 'Réglages',
     aide: "Le fuseau horaire définit la journée de service : tant qu'il vaut UTC, un bandeau d'avertissement s'affiche sur la saisie. La fenêtre de modification se compte en minutes après l'heure de départ.",
@@ -477,6 +527,57 @@ const FUSEAUX = [
   'Africa/Nairobi',
   'Indian/Antananarivo',
 ];
+
+/* Un départ fictif : l'aperçu montre le message tel qu'il partira, sans
+   attendre qu'une agence en déclare un. */
+const EXEMPLE = {
+  depart: {
+    agence: 'Agence Centrale',
+    axe: 'NORD 1',
+    provenance: 'Agence Centrale',
+    destination: 'Agence Sud',
+    bordereau: '12345',
+    hDep: '09:00',
+    effArr: 0,
+    effComp: 45,
+    chauffeur: 'Jean K.',
+    convoyeur: 'Paul M.',
+    chefPiste: 'Marie T.',
+  },
+  calculs: {
+    programme: 'Début de programme',
+    immat: 'LT0171HE',
+    places: 62,
+    dispo: 62,
+    total: 45,
+    taux: 0.7258,
+    hArr: '',
+    passants: [{ agence: 'Agence Nord', n: 20 }],
+  },
+  annulation: {
+    immat: 'LT0171HE',
+    bordereau: '12345',
+    destination: 'Agence Sud',
+    hDep: '09:00',
+    programme: 'Début de programme',
+  },
+  agence: 'Agence Centrale',
+};
+
+const valeursExemple = (code) =>
+  code === 'ANNULATION'
+    ? valeursAnnulation(EXEMPLE.annulation, EXEMPLE.agence)
+    : valeursDepart(EXEMPLE.depart, EXEMPLE.calculs);
+
+/** « 🚌 *DÉPART AGENCE CENTRALE · DÉBUT DE PROGRAMME* » : la ligne qui se lit dans la liste. */
+function premiereLigne(ligne) {
+  const rendu = rendreGabarit(ligne.gabarit, valeursExemple(ligne.code));
+  return rendu.split('\n').find((l) => l.trim()) || '';
+}
+
+/* L'identifiant du champ texte est fabriqué par champsHtml, comme f-nom ou
+   f-immat : il n'apparaît en clair nulle part ailleurs dans la page. */
+const CHAMP_GABARIT = 'f-gabarit';
 
 /* ------------------------------------------------------------- démarrage */
 
@@ -593,6 +694,11 @@ async function charger() {
   DATA.permissions = perms.error ? [] : perms.data || [];
   DATA.role_permissions = liens.error ? [] : liens.data || [];
 
+  // Les messages (0013) : même tolérance que ci-dessus — une base qui n'a pas
+  // encore la table laisse l'onglet fermé, elle ne ferme pas l'administration.
+  const messages = await sb.from('messages').select('code, libelle, gabarit, ordre').order('ordre');
+  DATA.messages = messages.error ? [] : messages.data || [];
+
   APPARENCE = apparenceEnBase();
   appliquer(APPARENCE);
   return true;
@@ -645,7 +751,9 @@ function rendre() {
     return;
   }
   if (SECTION === 'comptes') blocs.push(carteNouveauCompte());
-  if (spec.ajout !== false || EDITE) blocs.push(carteForm(spec));
+  // un message s'écrit en le regardant : le texte et son aperçu côte à côte
+  if (SECTION === 'messages' && EDITE) blocs.push('<div class="msg-duo">' + carteForm(spec) + carteApercu() + '</div>');
+  else if (spec.ajout !== false || EDITE) blocs.push(carteForm(spec));
   if (SECTION === 'comptes' && IDENT_ID) blocs.push(carteIdentifiant());
   if (SECTION === 'comptes' && MDP_ID) blocs.push(carteMdp());
   if (SECTION === 'axes' && ITIN_AXE != null) blocs.push(carteItin());
@@ -683,6 +791,7 @@ function rendre() {
     e.preventDefault();
     enregistrerPermissions();
   });
+  $(CHAMP_GABARIT)?.addEventListener('input', majApercu);
   $('imp-fichier')?.addEventListener('change', async (e) => {
     const f = e.target.files[0];
     if (!f) return;
@@ -810,6 +919,25 @@ function champsHtml(spec, ligne) {
         );
       }
 
+      // un texte long (gabarit de message) : toute la largeur du formulaire
+      if (c.t === 'zone') {
+        return (
+          '<label class="plein">' +
+          esc(c.l) +
+          (c.aide ? '<small>' + esc(c.aide) + '</small>' : '') +
+          '<textarea id="' +
+          id +
+          '" rows="' +
+          (c.lignes || 12) +
+          '"' +
+          (c.req ? ' required' : '') +
+          des +
+          '>' +
+          esc(val == null ? '' : val) +
+          '</textarea></label>'
+        );
+      }
+
       return (
         '<label>' +
         esc(c.l) +
@@ -857,6 +985,31 @@ function carteForm(spec) {
     '</div>' +
     '</form>'
   );
+}
+
+/* Le message en cours d'édition, rempli avec un départ fictif : on écrit en
+   regardant partir le texte, comme dans la conversation WhatsApp. */
+function carteApercu() {
+  const variables = variablesDe(EDITE.code)
+    .map((v) => '<span><code>{' + v[0] + '}</code> ' + esc(v[1]) + '</span>')
+    .join('');
+
+  return (
+    '<div class="card">' +
+    '<h2>Aperçu</h2>' +
+    '<p class="hint">Un départ fictif : « Agence Centrale » part à 09:00 vers « Agence Sud ».</p>' +
+    '<pre class="wa" id="apercu">' + esc(rendreGabarit(EDITE.gabarit, valeursExemple(EDITE.code))) + '</pre>' +
+    '<h2>Variables</h2>' +
+    '<div class="vars">' + variables + '</div>' +
+    '</div>'
+  );
+}
+
+function majApercu() {
+  const zone = $('apercu');
+  const champ = $(CHAMP_GABARIT);
+  if (!zone || !champ || !EDITE) return;
+  zone.textContent = rendreGabarit(champ.value, valeursExemple(EDITE.code));
 }
 
 function carteItin() {

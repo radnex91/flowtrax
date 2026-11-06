@@ -1,6 +1,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { chargerTheme } from './theme.js';
+import { setGabarits } from './wa.js';
 
 export const isConfigured =
   Boolean(SUPABASE_URL) &&
@@ -141,6 +142,20 @@ export async function requireSession({ perm = null, requireAgence = true } = {})
     await chargerTheme(sb);
   } catch {
     // le cache local fait foi : une base muette ne bloque pas la page
+  }
+
+  // les messages partis sur WhatsApp se réécrivent depuis Administration →
+  // Messages (0013) : ils sont lus ici, avant qu'un écran n'en compose un. Tant
+  // que la migration n'est pas passée, wa.js garde ses textes d'origine.
+  try {
+    const messages = await sb.from('messages').select('code, gabarit');
+    if (!messages.error && Array.isArray(messages.data)) {
+      const gabarits = {};
+      for (const m of messages.data) gabarits[m.code] = m.gabarit;
+      setGabarits(gabarits);
+    }
+  } catch {
+    // base injoignable : les textes d'origine restent en place
   }
 
   return ctx;

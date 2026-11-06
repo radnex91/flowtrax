@@ -1,7 +1,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import { waText, waAnnul, pct, cls, libelleAxe, hhmm } from '../public/assets/wa.js';
+import {
+  MESSAGES_DEFAUT,
+  rendreGabarit,
+  setGabarits,
+  valeursDepart,
+  waText,
+  waAnnul,
+  pct,
+  cls,
+  libelleAxe,
+  hhmm,
+} from '../public/assets/wa.js';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const d = {
   agence: 'Agence Centrale',
@@ -135,4 +151,63 @@ test('message d\'annulation : identique à l\'application actuelle', () => {
     ),
     attendu
   );
+});
+
+test('les gabarits semés en base sont, au caractère près, les textes figés ci-dessus', () => {
+  // 0013 recopie ces trois textes dans public.messages. Si les deux divergent,
+  // l'application envoie autre chose dès la migration passée : c'est ici que
+  // la promesse « rien ne change à l'envoi » se vérifie.
+  const migration = readFileSync(resolve(root, 'supabase/migrations/0013_messages.sql'), 'utf8');
+
+  const semes = {};
+  for (const [, code, gabarit] of migration.matchAll(
+    /\('([A-Z_]+)',\s*'(?:[^']|'')*',\s*\d+,\s*\$msg\$([\s\S]*?)\$msg\$\)/g
+  )) {
+    semes[code] = gabarit;
+  }
+
+  assert.deepEqual(Object.keys(semes).sort(), ['ANNULATION', 'CORRECTION', 'DEPART']);
+  for (const code of Object.keys(MESSAGES_DEFAUT)) {
+    assert.equal(semes[code], MESSAGES_DEFAUT[code], `${code} : le gabarit du SQL n'est pas le texte d'origine`);
+  }
+
+  // et le texte d'origine, passé par le même rendu, redonne bien ce que les
+  // tests ci-dessus figent au caractère près
+  assert.equal(rendreGabarit(MESSAGES_DEFAUT.DEPART, valeursDepart(d, r)), waText(d, r, false));
+});
+
+test('un gabarit se remplit variable par variable', () => {
+  assert.equal(
+    rendreGabarit('DÉPART {agence} · {h_depart}', { agence: 'Agence Centrale', h_depart: '09:00' }),
+    'DÉPART Agence Centrale · 09:00'
+  );
+  // une faute de frappe doit se voir dans l'aperçu, pas vider la ligne
+  assert.equal(rendreGabarit('• Ligne : {lignee}', { ligne: 'NORD 1' }), '• Ligne : {lignee}');
+});
+
+test('une ligne qui ne porte que des variables vides s\'efface, et zéro reste affiché', () => {
+  const gabarit = ['• Ligne : {ligne}', '• Passants : {passants}', '• Total : {total}', '', 'fin'].join('\n');
+
+  assert.equal(
+    rendreGabarit(gabarit, { ligne: 'NORD 1', passants: '', total: 0 }),
+    ['• Ligne : NORD 1', '• Total : 0', '', 'fin'].join('\n')
+  );
+});
+
+test('les textes lus en base prennent la place des originaux, sans jamais vider un message', () => {
+  setGabarits({ DEPART: 'Salut {agence}', CORRECTION: '', ANNULATION: '   ' });
+  try {
+    assert.equal(waText(d, r, false), 'Salut Agence Centrale');
+    assert.ok(waText(d, r, true).startsWith('🚨'), 'un gabarit vide reprend le texte d\'origine');
+    assert.ok(
+      waAnnul(
+        { immat: 'LT0171HE', bordereau: '12345', destination: 'Agence Sud', hDep: '09:00' },
+        'Agence Centrale'
+      ).startsWith('🚫')
+    );
+  } finally {
+    setGabarits(null);
+  }
+
+  assert.equal(waText(d, r, false).split('\n')[0], '🚌 *DÉPART AGENCE CENTRALE · DÉBUT DE PROGRAMME*');
 });
