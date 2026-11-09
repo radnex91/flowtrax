@@ -7,7 +7,15 @@ const RUBRIQUES = [
   { page: 'dashboard.html', texte: 'Tableau de bord', perms: ['dashboard.lire'] },
   { page: 'depart.html', texte: 'Déclarer un départ', perms: ['depart.lire', 'depart.declarer'] },
   { page: 'rapports.html', texte: 'Rapports', perms: ['rapports.lire'] },
-  { page: 'admin.html', texte: 'Administration', perms: ['admin.acces'] },
+  {
+    page: 'admin.html',
+    texte: 'Administration',
+    perms: ['admin.acces'],
+    sous: [
+      { sec: 'vehicules', texte: 'Gestion des véhicules', url: 'admin.html?sec=vehicules' },
+      { sec: 'chauffeurs', texte: 'Gestion des chauffeurs', url: 'admin.html?sec=chauffeurs' },
+    ],
+  },
 ];
 
 const ICONES = {
@@ -71,18 +79,52 @@ export function monterNav(profil) {
     '<p class="coque-titre" hidden>Navigation</p>' +
     '<ul class="coque-links">' +
     vues
-      .map(
-        (r) =>
-          '<li><a href="' +
+      .map((r) => {
+        const aDesSous = Boolean(r.sous && r.sous.length);
+        const secDemandee = (new URLSearchParams(window.location.search).get('sec') || '').toLowerCase();
+        const estIci = r.page === ici;
+        const estActif = estIci && (!aDesSous || !secDemandee);
+        let sousHtml = '';
+        if (aDesSous) {
+          sousHtml =
+            '<ul class="coque-sublinks">' +
+            r.sous
+              .map((s) => {
+                const sousActif = estIci && secDemandee === s.sec;
+                return (
+                  '<li><a href="' +
+                  s.url +
+                  '"' +
+                  (sousActif ? ' class="coque-sub-on" aria-current="page"' : '') +
+                  '>' +
+                  '<span class="coque-sub-dot" aria-hidden="true">•</span>' +
+                  '<span>' +
+                  s.texte +
+                  '</span></a></li>'
+                );
+              })
+              .join('') +
+            '</ul>';
+        }
+        return (
+          '<li class="' +
+          (aDesSous ? 'coque-has-sous open' : '') +
+          '">' +
+          '<a href="' +
           r.page +
           '"' +
-          (r.page === ici ? ' aria-current="page"' : '') +
+          (estActif ? ' aria-current="page"' : '') +
           '>' +
           icone(r.page) +
           '<span>' +
           r.texte +
-          '</span></a></li>'
-      )
+          '</span>' +
+          (aDesSous ? '<span class="coque-chevron" aria-hidden="true">▾</span>' : '') +
+          '</a>' +
+          sousHtml +
+          '</li>'
+        );
+      })
       .join('') +
     '</ul>' +
     '<div class="coque-footer">' +

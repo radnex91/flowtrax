@@ -117,6 +117,7 @@ const REQUIS = {
   axes: 'admin.referentiels',
   sens: 'admin.referentiels',
   vehicules: 'admin.referentiels',
+  chauffeurs: 'admin.referentiels',
   fonctions: 'admin.referentiels',
   agents: 'admin.referentiels',
   reglages: 'admin.referentiels',
@@ -262,6 +263,31 @@ const SPECS = {
     },
   },
 
+  chauffeurs: {
+    titre: 'Gestion des chauffeurs',
+    aide: "Gestion des chauffeurs Danay Express. Les chauffeurs actifs sont proposés dans l'équipage lors de la déclaration d'un départ. Un chauffeur déjà cité par un départ ne peut pas être supprimé : désactivez-le.",
+    table: 'agents',
+    cle: 'id',
+    singulier: 'un chauffeur',
+    ajout: true,
+    supprimable: true,
+    filtre: (r) => r.fonction === 'CHAUFFEUR',
+    colonnes: [
+      { k: 'nom', l: 'Nom du chauffeur' },
+      { k: 'agence_id', l: 'Agence d’attache', f: (r) => esc(nomAgence(r.agence_id)) },
+      { k: 'actif', l: 'En service', f: (r) => oui(r.actif) },
+    ],
+    champs: [
+      { n: 'nom', l: 'Nom et prénom', t: 'text', req: true, aide: 'ex. Jean K., Ahmadou' },
+      { n: 'agence_id', l: 'Agence de rattachement', t: 'select', num: true, vide: true, options: AGENCES_OPT },
+      { n: 'actif', l: 'Chauffeur actif', t: 'check' },
+    ],
+    defaut: { fonction: 'CHAUFFEUR', actif: true },
+    normaliser: (o) => {
+      o.fonction = 'CHAUFFEUR';
+      if (o.nom) o.nom = o.nom.trim().replace(/\s+/g, ' ');
+    },
+  },
   fonctions: {
     titre: 'Fonctions',
     aide: "La fonction est ce que fait une personne sur le terrain : elle remplit la liste « Fonction » de l'onglet Utilisateurs. Chauffeur, Convoyeur et Chef de piste sont les seules proposées dans l'équipage d'un départ, et leur code ne change pas — seul le libellé affiché se renomme. Une fonction portée par un utilisateur ne peut pas être supprimée : désactivez-la.",
@@ -303,7 +329,7 @@ const SPECS = {
   },
 
   vehicules: {
-    titre: 'Parc',
+    titre: 'Gestion des véhicules',
     aide: "Les places servent à figer la capacité d'un départ à sa déclaration : les changer demain ne réécrit pas l'historique.",
     table: 'vehicules',
     cle: 'id',
@@ -610,7 +636,10 @@ async function init() {
     $('boot').textContent = "Ce compte peut ouvrir l'administration, mais aucune section ne lui est ouverte.";
     return;
   }
-  if (!vus.some((b) => b.dataset.sec === SECTION)) {
+  const demandee = new URLSearchParams(location.search).get('sec');
+  if (demandee && vus.some((b) => b.dataset.sec === demandee)) {
+    SECTION = demandee;
+  } else if (!vus.some((b) => b.dataset.sec === SECTION)) {
     SECTION = vus[0].dataset.sec;
   }
 
@@ -621,6 +650,11 @@ async function init() {
     const b = e.target.closest('button[data-sec]');
     if (!b) return;
     SECTION = b.dataset.sec;
+    try {
+      const u = new URL(location);
+      u.searchParams.set('sec', SECTION);
+      history.replaceState(null, '', u);
+    } catch {}
     EDITE = null;
     ITIN_AXE = null;
     ITIN = [];
@@ -1064,7 +1098,8 @@ function carteItin() {
 }
 
 function carteTable(spec) {
-  const lignes = DATA[spec.table] || [];
+  const toutes = DATA[spec.table] || [];
+  const lignes = spec.filtre ? toutes.filter(spec.filtre) : toutes;
   if (!lignes.length) return '<div class="empty">Aucun enregistrement.</div>';
 
   const th =
