@@ -2379,48 +2379,79 @@ header.top{
 
 
 /* --- Sous-menus de la barre latérale Danay Express --- */
-.coque-sublinks{
-  list-style:none;
-  margin:.25rem 0 .45rem 1.4rem;
-  padding:0 0 0 .65rem;
-  border-left:2px solid rgba(255,255,255,.15);
+.coque-has-sous{
   display:flex;
   flex-direction:column;
-  gap:.3rem;
+  gap:4px;
+}
+.coque-sublinks{
+  list-style:none;
+  margin:.2rem 0 .4rem .5rem;
+  padding:.35rem;
+  background:rgba(0,0,0,.22);
+  border-radius:.85rem;
+  border:1px solid rgba(255,255,255,.07);
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.coque-sublinks li{
+  margin:0;
+  padding:0;
 }
 .coque-sublinks a{
-  font-size:.82rem !important;
-  font-weight:500 !important;
-  padding:.42rem .75rem !important;
-  color:rgba(255,255,255,.7) !important;
-  border-radius:.55rem !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:.75rem !important;
+  padding:.58rem .85rem !important;
+  font-size:.84rem !important;
+  font-weight:600 !important;
+  color:rgba(255,255,255,.75) !important;
+  border-radius:.65rem !important;
   background:transparent !important;
   box-shadow:none !important;
+  border:1px solid transparent !important;
   transform:none !important;
+  transition:all .18s ease !important;
+  line-height:1.2 !important;
+}
+.coque-sublinks a .coque-sub-icon{
+  width:18px !important;
+  height:18px !important;
+  color:rgba(255,255,255,.65) !important;
+  stroke:rgba(255,255,255,.65) !important;
+  flex-shrink:0 !important;
+  transition:all .18s ease !important;
 }
 .coque-sublinks a:hover{
-  color:#fff !important;
+  color:#ffffff !important;
   background:rgba(255,255,255,.08) !important;
-  transform:translateX(2px) !important;
+  transform:translateX(3px) !important;
+}
+.coque-sublinks a:hover .coque-sub-icon{
+  color:#ffffff !important;
+  stroke:#ffffff !important;
 }
 .coque-links .coque-sublinks a[aria-current="page"],
 .coque-links .coque-sublinks a.coque-sub-on{
   background:rgba(237,93,11,.22) !important;
-  color:#ED5D0B !important;
+  color:#ffffff !important;
   font-weight:700 !important;
-  border:1px solid rgba(237,93,11,.45) !important;
-  box-shadow:none !important;
+  border:1px solid rgba(237,93,11,.5) !important;
+  box-shadow:0 3px 12px rgba(237,93,11,.25) !important;
 }
-.coque-sub-dot{
-  font-size:1.1rem;
-  line-height:0;
-  color:#ED5D0B;
+.coque-links .coque-sublinks a[aria-current="page"] .coque-sub-icon,
+.coque-links .coque-sublinks a.coque-sub-on .coque-sub-icon{
+  color:#ED5D0B !important;
+  stroke:#ED5D0B !important;
 }
 .coque-chevron{
   margin-left:auto;
-  font-size:.7rem;
-  transition:transform .2s ease;
-  opacity:.7;
+  width:14px;
+  height:14px;
+  transition:transform .22s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity:.8;
+  color:currentColor;
 }
 .coque-has-sous.open .coque-chevron{
   transform:rotate(180deg);

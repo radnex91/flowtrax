@@ -31,6 +31,24 @@ const ICONES = {
     '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
 };
 
+const ICONES_SOUS = {
+  vehicules:
+    '<rect x="3" y="4" width="18" height="13" rx="2.5"/><path d="M3 10h18"/><path d="M5.5 17h1.5M9.5 17h5M18.5 17h.5"/><circle cx="7.5" cy="19.5" r="2"/><circle cx="16.5" cy="19.5" r="2"/>',
+  chauffeurs:
+    '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M6 3h12l-1.5 3.5h-9z"/>',
+};
+
+const CHEVRON_SVG =
+  '<svg class="coque-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M6 9l6 6 6-6"/>' +
+  '</svg>';
+
+const iconeSous = (cle) =>
+  '<svg class="coque-sub-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  (ICONES_SOUS[cle] || '') +
+  '</svg>';
+
 const icone = (page) =>
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
   'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -97,7 +115,7 @@ export function monterNav(profil) {
                   '"' +
                   (sousActif ? ' class="coque-sub-on" aria-current="page"' : '') +
                   '>' +
-                  '<span class="coque-sub-dot" aria-hidden="true">•</span>' +
+                  iconeSous(s.sec) +
                   '<span>' +
                   s.texte +
                   '</span></a></li>'
@@ -119,7 +137,7 @@ export function monterNav(profil) {
           '<span>' +
           r.texte +
           '</span>' +
-          (aDesSous ? '<span class="coque-chevron" aria-hidden="true">▾</span>' : '') +
+          (aDesSous ? CHEVRON_SVG : '') +
           '</a>' +
           sousHtml +
           '</li>'
