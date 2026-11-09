@@ -157,7 +157,7 @@ test('les gabarits semés en base sont, au caractère près, les textes figés c
   // 0013 recopie ces trois textes dans public.messages. Si les deux divergent,
   // l'application envoie autre chose dès la migration passée : c'est ici que
   // la promesse « rien ne change à l'envoi » se vérifie.
-  const migration = readFileSync(resolve(root, 'supabase/migrations/0013_messages.sql'), 'utf8');
+  const migration = readFileSync(resolve(root, 'supabase/migrations/0013_messages.sql'), 'utf8').replace(/\r\n/g, '\n');
 
   const semes = {};
   for (const [, code, gabarit] of migration.matchAll(
